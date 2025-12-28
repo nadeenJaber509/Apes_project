@@ -3,7 +3,6 @@
 #include <time.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <GL/glut.h>
 
 #include "config.h"
 #include "maze.h"
@@ -48,9 +47,6 @@ int main(int argc, char *argv[])
 
     print_maze();
 
-    // ==== GRAPHICS THREAD ====
-    init_graphics(argc, argv);
-
     printf("\n========================================\n");
     printf("   STARTING THREADS\n");
     printf("========================================\n\n");
@@ -73,8 +69,11 @@ int main(int argc, char *argv[])
     pthread_t sim_monitor;
     pthread_create(&sim_monitor, NULL, simulation_monitor_thread, NULL);
 
-    // Start GLUT main loop
-    glutMainLoop();
+    printf("Press ESC or 'q' in graphics window to quit\n\n");
+
+    // Initialize and start graphics (this will block in glutMainLoop)
+    init_graphics(argc, argv);
+    start_graphics(); // This blocks until window is closed
 
     // After GLUT exits, join threads
     pthread_join(sim_monitor, NULL);

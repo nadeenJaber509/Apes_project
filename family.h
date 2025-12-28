@@ -27,6 +27,7 @@ struct FemaleApe {
     int position_col;
     bool in_maze;
     bool resting;
+    bool fighting;
     pthread_t thread;
     bool active;
 };

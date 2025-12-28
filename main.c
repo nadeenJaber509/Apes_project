@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     print_maze();
 
     // ==== GRAPHICS THREAD ====
-    init_graphics(argc, argv);
+    // init_graphics(argc, argv);
 
     printf("\n========================================\n");
     printf("   STARTING THREADS\n");
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
             pthread_join(families[i].babies[j].thread, NULL);
     }
 
-    stop_graphics();
+    // stop_graphics();
 
     printf("\nFINAL RESULTS\n");
     print_simulation_stats();

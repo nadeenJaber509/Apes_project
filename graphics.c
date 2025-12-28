@@ -1,5 +1,5 @@
 // graphics.c
-#include <GL/glut.h>
+#include <GLUT/glut.h>
 #include <pthread.h>
 #include "graphics.h"
 #include "simulation.h"

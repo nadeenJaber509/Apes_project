@@ -1,0 +1,49 @@
+# =========================
+# Maze Configuration
+# =========================
+maze_rows = 20
+maze_cols = 20
+obstacle_percentage = 20      # percentage (0 - 100)
+max_bananas_per_cell = 5
+banana_cell_percentage = 30
+
+# =========================
+# Ape Families
+# =========================
+num_families = 10
+babies_per_family = 2
+
+# =========================
+# Female Apes
+# =========================
+female_target_bananas = 10
+female_initial_energy = 100
+female_rest_threshold = 30
+female_rest_time = 3          # seconds
+
+# =========================
+# Male Apes
+# =========================
+male_initial_energy = 120
+male_fight_energy_threshold = 40
+
+# =========================
+# Male Fight Probability
+# fight_probability = base + (basket_bananas * factor)
+# =========================
+base_fight_probability = 0.1
+banana_fight_factor = 0.02
+
+# =========================
+# Baby Apes
+# =========================
+baby_eat_rate = 1             # bananas per steal
+baby_max_eat = 20
+
+# =========================
+# Termination Conditions
+# =========================
+max_withdrawn_families = 3
+max_family_bananas = 100
+max_baby_eaten = 20
+max_simulation_time = 120     # seconds

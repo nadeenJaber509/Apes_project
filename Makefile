@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pthread -g -O2
-LDFLAGS = -pthread -lm -framework GLUT -framework OpenGL
+LDFLAGS = -pthread -lm -lglut -lGL -lGLU
 
 SOURCES = main.c \
           config.c \

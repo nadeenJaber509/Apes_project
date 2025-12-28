@@ -12,6 +12,8 @@ struct BabyApe {
     int id;
     int family_id;
     int bananas_eaten;
+    int position_row;
+    int position_col;
     pthread_t thread;
     bool active;
 };
@@ -34,6 +36,8 @@ struct MaleApe {
     int family_id;
     int energy;
     bool fighting;
+    int position_row;
+    int position_col;
     pthread_t thread;
     bool active;
 };

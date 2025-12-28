@@ -53,6 +53,8 @@ void init_families(void)
         families[i].male->family_id = i;
         families[i].male->energy = config.male_initial_energy;
         families[i].male->fighting = false;
+        families[i].male->position_row = config.maze_rows + 1;
+        families[i].male->position_col = i * 3;
         families[i].male->active = true;
         
         families[i].babies = (BabyApe *)malloc(config.babies_per_family * sizeof(BabyApe));
@@ -60,6 +62,8 @@ void init_families(void)
             families[i].babies[j].id = j;
             families[i].babies[j].family_id = i;
             families[i].babies[j].bananas_eaten = 0;
+            families[i].babies[j].position_row = config.maze_rows + 1;
+            families[i].babies[j].position_col = i * 3 + 1 + j;
             families[i].babies[j].active = true;
         }
     }

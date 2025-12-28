@@ -3,6 +3,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <GL/glut.h>
 
 #include "config.h"
 #include "maze.h"
@@ -14,6 +15,23 @@
 void* female_ape_thread(void *arg);
 void* male_ape_thread(void *arg);
 void* baby_ape_thread(void *arg);
+void* simulation_monitor_thread(void *arg);
+
+void* simulation_monitor_thread(void *arg)
+{
+    (void)arg;
+    while (is_simulation_running()) {
+        sleep(3);
+
+        if (check_termination_conditions()) {
+            stop_simulation();
+            break;
+        }
+
+        print_simulation_stats();
+    }
+    return NULL;
+}
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +49,7 @@ int main(int argc, char *argv[])
     print_maze();
 
     // ==== GRAPHICS THREAD ====
-    // init_graphics(argc, argv);
+    init_graphics(argc, argv);
 
     printf("\n========================================\n");
     printf("   STARTING THREADS\n");
@@ -51,16 +69,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    while (is_simulation_running()) {
-        sleep(3);
+    // Start simulation monitor thread
+    pthread_t sim_monitor;
+    pthread_create(&sim_monitor, NULL, simulation_monitor_thread, NULL);
 
-        if (check_termination_conditions()) {
-            stop_simulation();
-            break;
-        }
+    // Start GLUT main loop
+    glutMainLoop();
 
-        print_simulation_stats();
-    }
+    // After GLUT exits, join threads
+    pthread_join(sim_monitor, NULL);
 
     printf("\nWaiting for threads...\n");
 

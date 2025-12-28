@@ -13,6 +13,7 @@ typedef struct {
 } SimulationState;
 
 extern SimulationState sim_state;
+extern bool simulation_done;
 
 void init_simulation(void);
 void cleanup_simulation(void);

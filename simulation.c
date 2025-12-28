@@ -20,6 +20,7 @@
 #include "config.h"
 
 SimulationState sim_state;
+bool simulation_done = false;
 
 void init_simulation(void)
 {
@@ -58,6 +59,8 @@ void stop_simulation(void)
     printf("\n========================================\n");
     printf("   SIMULATION STOPPED\n");
     printf("========================================\n\n");
+
+    simulation_done = true;
 }
 
 int get_elapsed_time(void)

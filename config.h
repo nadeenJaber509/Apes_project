@@ -2,44 +2,51 @@
 #define CONFIG_H
 
 typedef struct {
-    /* Maze */
+    /* Maze & Simulation */
     int maze_rows;
     int maze_cols;
-    int obstacle_percentage;
-    int max_bananas_per_cell;
-    int banana_cell_percentage;
-
-    /* Families */
     int num_families;
-    int babies_per_family;
+    int num_females_per_family;
+    int num_babies_per_family;
+    int max_simulation_time;
 
-    /* Female apes */
-    int female_target_bananas;
+    /* Maze generation */
+    int obstacle_percentage;      // % of cells that are obstacles
+    int banana_cell_percentage;   // % of non-obstacle cells that contain bananas
+    int max_bananas_per_cell;     // max bananas in a banana cell
+
+    /* Bananas & Stop Conditions */
+    int family_max_bananas;
+    int max_withdrawn_families;
+    int max_baby_eaten;
+
+    /* Female */
     int female_initial_energy;
+    int female_collect_cost;
+    int female_trip_end_cost;
+    int female_fight_win_cost;
+    int female_fight_lose_cost;
     int female_rest_threshold;
-    int female_rest_time;
+    int female_rest_gain;
+    int female_target_bananas;
 
-    /* Male apes */
+    /* Male */
     int male_initial_energy;
-    int male_fight_energy_threshold;
+    int male_idle_cost;
+    int male_fight_win_cost;
+    int male_fight_lose_cost;
+    int male_withdraw_threshold;
 
-    /* Male fights */
+    /* Baby */
+    int baby_eat_rate;            // how many bananas baby attempts to steal each time
+
+    /* Fight Probability */
     float base_fight_probability;
     float banana_fight_factor;
 
-    /* Baby apes */
-    int baby_eat_rate;
-    int baby_max_eat;
+} config_t;
 
-    /* Termination conditions */
-    int max_withdrawn_families;
-    int max_family_bananas;
-    int max_baby_eaten;
-    int max_simulation_time;
-
-} Config;
-
-extern Config config;
+extern config_t config;
 
 void read_config(const char *filename);
 void print_config(void);

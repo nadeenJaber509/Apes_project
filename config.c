@@ -3,114 +3,129 @@
 #include <string.h>
 #include "config.h"
 
-Config config;
+config_t config;
+
+static void set_default_config(void)
+{
+    config.maze_rows = 15;
+    config.maze_cols = 15;
+    config.num_families = 3;
+    config.num_females_per_family = 1;
+    config.num_babies_per_family = 1;
+    config.max_simulation_time = 120;
+
+    config.obstacle_percentage = 15;
+    config.banana_cell_percentage = 25;
+    config.max_bananas_per_cell = 5;
+
+    config.family_max_bananas = 40;
+    config.max_withdrawn_families = 2;
+    config.max_baby_eaten = 10;
+
+    config.female_initial_energy = 100;
+    config.female_collect_cost = 2;
+    config.female_trip_end_cost = 5;
+    config.female_fight_win_cost = 5;
+    config.female_fight_lose_cost = 10;
+    config.female_rest_threshold = 25;
+    config.female_rest_gain = 20;
+    config.female_target_bananas = 6;
+
+    config.male_initial_energy = 120;
+    config.male_idle_cost = 1;
+    config.male_fight_win_cost = 10;
+    config.male_fight_lose_cost = 20;
+    config.male_withdraw_threshold = 30;
+
+    config.baby_eat_rate = 2;
+
+    config.base_fight_probability = 0.05f;
+    config.banana_fight_factor = 0.01f;
+}
 
 void read_config(const char *filename)
 {
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        perror("Failed to open config file");
-        exit(1);
+    set_default_config();
+
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Failed to open config file, using defaults");
+        return;
     }
 
-    char key[64];
-    char eq[8];
     char line[256];
-
-    while (fgets(line, sizeof(line), fp)) {
-        // Ignore comments and empty lines
-        if (line[0] == '#' || line[0] == '\n')
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] == '#' || strlen(line) < 3)
             continue;
 
-        sscanf(line, "%63s %7s", key, eq);
+        sscanf(line, "maze_rows=%d", &config.maze_rows);
+        sscanf(line, "maze_cols=%d", &config.maze_cols);
+        sscanf(line, "num_families=%d", &config.num_families);
+        sscanf(line, "num_females_per_family=%d", &config.num_females_per_family);
+        sscanf(line, "num_babies_per_family=%d", &config.num_babies_per_family);
+        sscanf(line, "max_simulation_time=%d", &config.max_simulation_time);
 
-        if (strcmp(key, "maze_rows") == 0)
-            sscanf(line, "%*s %*s %d", &config.maze_rows);
-        else if (strcmp(key, "maze_cols") == 0)
-            sscanf(line, "%*s %*s %d", &config.maze_cols);
-        else if (strcmp(key, "obstacle_percentage") == 0)
-            sscanf(line, "%*s %*s %d", &config.obstacle_percentage);
-        else if (strcmp(key, "max_bananas_per_cell") == 0)
-            sscanf(line, "%*s %*s %d", &config.max_bananas_per_cell);
-        else if (strcmp(key, "banana_cell_percentage") == 0)
-            sscanf(line, "%*s %*s %d", &config.banana_cell_percentage);
-        else if (strcmp(key, "num_families") == 0)
-            sscanf(line, "%*s %*s %d", &config.num_families);
-        else if (strcmp(key, "babies_per_family") == 0)
-            sscanf(line, "%*s %*s %d", &config.babies_per_family);
-        else if (strcmp(key, "female_target_bananas") == 0)
-            sscanf(line, "%*s %*s %d", &config.female_target_bananas);
-        else if (strcmp(key, "female_initial_energy") == 0)
-            sscanf(line, "%*s %*s %d", &config.female_initial_energy);
-        else if (strcmp(key, "female_rest_threshold") == 0)
-            sscanf(line, "%*s %*s %d", &config.female_rest_threshold);
-        else if (strcmp(key, "female_rest_time") == 0)
-            sscanf(line, "%*s %*s %d", &config.female_rest_time);
-        else if (strcmp(key, "male_initial_energy") == 0)
-            sscanf(line, "%*s %*s %d", &config.male_initial_energy);
-        else if (strcmp(key, "male_fight_energy_threshold") == 0)
-            sscanf(line, "%*s %*s %d", &config.male_fight_energy_threshold);
-        else if (strcmp(key, "base_fight_probability") == 0)
-            sscanf(line, "%*s %*s %f", &config.base_fight_probability);
-        else if (strcmp(key, "banana_fight_factor") == 0)
-            sscanf(line, "%*s %*s %f", &config.banana_fight_factor);
-        else if (strcmp(key, "baby_eat_rate") == 0)
-            sscanf(line, "%*s %*s %d", &config.baby_eat_rate);
-        else if (strcmp(key, "baby_max_eat") == 0)
-            sscanf(line, "%*s %*s %d", &config.baby_max_eat);
-        else if (strcmp(key, "max_withdrawn_families") == 0)
-            sscanf(line, "%*s %*s %d", &config.max_withdrawn_families);
-        else if (strcmp(key, "max_family_bananas") == 0)
-            sscanf(line, "%*s %*s %d", &config.max_family_bananas);
-        else if (strcmp(key, "max_baby_eaten") == 0)
-            sscanf(line, "%*s %*s %d", &config.max_baby_eaten);
-        else if (strcmp(key, "max_simulation_time") == 0)
-            sscanf(line, "%*s %*s %d", &config.max_simulation_time);
+        sscanf(line, "obstacle_percentage=%d", &config.obstacle_percentage);
+        sscanf(line, "banana_cell_percentage=%d", &config.banana_cell_percentage);
+        sscanf(line, "max_bananas_per_cell=%d", &config.max_bananas_per_cell);
+
+        sscanf(line, "family_max_bananas=%d", &config.family_max_bananas);
+        sscanf(line, "max_withdrawn_families=%d", &config.max_withdrawn_families);
+        sscanf(line, "max_baby_eaten=%d", &config.max_baby_eaten);
+
+        sscanf(line, "female_initial_energy=%d", &config.female_initial_energy);
+        sscanf(line, "female_collect_cost=%d", &config.female_collect_cost);
+        sscanf(line, "female_trip_end_cost=%d", &config.female_trip_end_cost);
+        sscanf(line, "female_fight_win_cost=%d", &config.female_fight_win_cost);
+        sscanf(line, "female_fight_lose_cost=%d", &config.female_fight_lose_cost);
+        sscanf(line, "female_rest_threshold=%d", &config.female_rest_threshold);
+        sscanf(line, "female_rest_gain=%d", &config.female_rest_gain);
+        sscanf(line, "female_target_bananas=%d", &config.female_target_bananas);
+
+        sscanf(line, "male_initial_energy=%d", &config.male_initial_energy);
+        sscanf(line, "male_idle_cost=%d", &config.male_idle_cost);
+        sscanf(line, "male_fight_win_cost=%d", &config.male_fight_win_cost);
+        sscanf(line, "male_fight_lose_cost=%d", &config.male_fight_lose_cost);
+        sscanf(line, "male_withdraw_threshold=%d", &config.male_withdraw_threshold);
+
+        sscanf(line, "baby_eat_rate=%d", &config.baby_eat_rate);
+
+        sscanf(line, "base_fight_probability=%f", &config.base_fight_probability);
+        sscanf(line, "banana_fight_factor=%f", &config.banana_fight_factor);
     }
 
-    fclose(fp);
+    fclose(file);
 }
 
 void print_config(void)
 {
-    printf("========================================\n");
-    printf("     SIMULATION CONFIGURATION\n");
-    printf("========================================\n\n");
-    
-    printf("Maze Configuration:\n");
-    printf("  Rows: %d\n", config.maze_rows);
-    printf("  Columns: %d\n", config.maze_cols);
-    printf("  Obstacle Percentage: %d%%\n", config.obstacle_percentage);
-    printf("  Max Bananas per Cell: %d\n", config.max_bananas_per_cell);
-    printf("  Banana Cell Percentage: %d%%\n", config.banana_cell_percentage);
+    printf("\n========= CONFIG =========\n");
+    printf("Maze: %dx%d\n", config.maze_rows, config.maze_cols);
+    printf("Families: %d (Females/family=%d, Babies/family=%d)\n",
+           config.num_families, config.num_females_per_family, config.num_babies_per_family);
+    printf("Max simulation time: %d s\n", config.max_simulation_time);
 
-    printf("\nFamilies Configuration:\n");
-    printf("  Number of Families: %d\n", config.num_families);
-    printf("  Babies per Family: %d\n", config.babies_per_family);
+    printf("Obstacle %%: %d\n", config.obstacle_percentage);
+    printf("Banana cell %%: %d\n", config.banana_cell_percentage);
+    printf("Max bananas/cell: %d\n", config.max_bananas_per_cell);
 
-    printf("\nFemale Apes Configuration:\n");
-    printf("  Target Bananas: %d\n", config.female_target_bananas);
-    printf("  Initial Energy: %d\n", config.female_initial_energy);
-    printf("  Rest Threshold: %d\n", config.female_rest_threshold);
-    printf("  Rest Time: %d seconds\n", config.female_rest_time);
+    printf("Stop: family_max_bananas=%d, max_withdrawn=%d, max_baby_eaten=%d\n",
+           config.family_max_bananas, config.max_withdrawn_families, config.max_baby_eaten);
 
-    printf("\nMale Apes Configuration:\n");
-    printf("  Initial Energy: %d\n", config.male_initial_energy);
-    printf("  Fight Energy Threshold: %d\n", config.male_fight_energy_threshold);
+    printf("Female: E0=%d, collect=%d, trip_end=%d, win=%d, lose=%d, rest_th=%d, rest_gain=%d, target=%d\n",
+           config.female_initial_energy, config.female_collect_cost, config.female_trip_end_cost,
+           config.female_fight_win_cost, config.female_fight_lose_cost,
+           config.female_rest_threshold, config.female_rest_gain, config.female_target_bananas);
 
-    printf("\nMale Fights Configuration:\n");
-    printf("  Base Fight Probability: %.2f\n", config.base_fight_probability);
-    printf("  Banana Fight Factor: %.2f\n", config.banana_fight_factor);
+    printf("Male: E0=%d, idle=%d, win=%d, lose=%d, withdraw_th=%d\n",
+           config.male_initial_energy, config.male_idle_cost,
+           config.male_fight_win_cost, config.male_fight_lose_cost,
+           config.male_withdraw_threshold);
 
-    printf("\nBaby Apes Configuration:\n");
-    printf("  Eat Rate: %d bananas/steal\n", config.baby_eat_rate);
-    printf("  Max Baby Eaten: %d\n", config.baby_max_eat);
+    printf("Baby eat rate: %d\n", config.baby_eat_rate);
 
-    printf("\nTermination Conditions:\n");
-    printf("  Max Withdrawn Families: %d\n", config.max_withdrawn_families);
-    printf("  Max Family Bananas: %d\n", config.max_family_bananas);
-    printf("  Max Baby Eaten: %d\n", config.max_baby_eaten);
-    printf("  Max Simulation Time: %d seconds\n", config.max_simulation_time);
-    
-    printf("\n========================================\n\n");
+    printf("Fight prob: base=%.3f, factor=%.3f\n",
+           config.base_fight_probability, config.banana_fight_factor);
+
+    printf("==========================\n\n");
 }

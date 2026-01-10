@@ -32,7 +32,7 @@ void init_families(void)
         families[i].id = i;
         families[i].basket_bananas = 0;
         families[i].withdrawn = false;
-        families[i].num_babies = config.babies_per_family;
+        families[i].num_babies = config.num_babies_per_family;
         
         pthread_mutex_init(&families[i].basket_mutex, NULL);
         pthread_mutex_init(&families[i].fight_mutex, NULL);
@@ -57,8 +57,8 @@ void init_families(void)
         families[i].male->position_col = i * 3;
         families[i].male->active = true;
         
-        families[i].babies = (BabyApe *)malloc(config.babies_per_family * sizeof(BabyApe));
-        for (int j = 0; j < config.babies_per_family; j++) {
+        families[i].babies = (BabyApe *)malloc(config.num_babies_per_family * sizeof(BabyApe));
+        for (int j = 0; j < config.num_babies_per_family; j++) {
             families[i].babies[j].id = j;
             families[i].babies[j].family_id = i;
             families[i].babies[j].bananas_eaten = 0;
@@ -70,7 +70,7 @@ void init_families(void)
     
     printf("=== Families Initialized ===\n");
     printf("Total Families: %d\n", total_families);
-    printf("Babies per Family: %d\n", config.babies_per_family);
+    printf("Babies per Family: %d\n", config.num_babies_per_family);
     printf("============================\n\n");
 }
 

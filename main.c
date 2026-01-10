@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 
     const char *config_file = (argc > 1) ? argv[1] : "config.txt";
     printf("Reading configuration from: %s\n", config_file);
+
     read_config(config_file);
     print_config();
 
@@ -47,9 +48,7 @@ int main(int argc, char *argv[])
 
     print_maze();
 
-    printf("\n========================================\n");
-    printf("   STARTING THREADS\n");
-    printf("========================================\n\n");
+    printf("\n===== STARTING THREADS =====\n");
 
     for (int i = 0; i < total_families; i++) {
 
@@ -65,17 +64,18 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Start simulation monitor thread
     pthread_t sim_monitor;
     pthread_create(&sim_monitor, NULL, simulation_monitor_thread, NULL);
 
-    printf("Press ESC or 'q' in graphics window to quit\n\n");
+    printf("Press ESC or 'q' in graphics window to quit\n");
 
-    // Initialize and start graphics (this will block in glutMainLoop)
+    /* Graphics (blocking) */
     init_graphics(argc, argv);
-    start_graphics(); // This blocks until window is closed
+    start_graphics();
 
-    // After GLUT exits, join threads
+    /* After glutLeaveMainLoop() */
+    stop_simulation();
+
     pthread_join(sim_monitor, NULL);
 
     printf("\nWaiting for threads...\n");
@@ -84,11 +84,10 @@ int main(int argc, char *argv[])
         pthread_join(families[i].female->thread, NULL);
         pthread_join(families[i].male->thread, NULL);
 
-        for (int j = 0; j < families[i].num_babies; j++)
+        for (int j = 0; j < families[i].num_babies; j++) {
             pthread_join(families[i].babies[j].thread, NULL);
+        }
     }
-
-    // stop_graphics();
 
     printf("\nFINAL RESULTS\n");
     print_simulation_stats();
@@ -99,6 +98,6 @@ int main(int argc, char *argv[])
     cleanup_families();
     cleanup_maze();
 
-    printf("\nSimulation completed.\n");
+    printf("\nSimulation completed cleanly.\n");
     return 0;
 }

@@ -91,9 +91,9 @@ bool check_termination_conditions(void)
     
     for (int i = 0; i < total_families; i++) {
         int bananas = get_family_total_bananas(i);
-        if (bananas >= config.max_family_bananas) {
+        if (bananas >= config.family_max_bananas) {
             printf("\n>>> Termination: Family %d has %d bananas (limit: %d)\n",
-                   i, bananas, config.max_family_bananas);
+                   i, bananas, config.family_max_bananas);
             return true;
         }
     }

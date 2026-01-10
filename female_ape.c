@@ -331,7 +331,7 @@ void* female_ape_thread(void *arg)
 
     log_event("Female %d (Family %d) started", female->id, family_id);
 
-    while (is_simulation_running() && female->active) {
+    while (is_simulation_running() && female->active && any_family_active()) {
 
         if (families[family_id].withdrawn)
             break;

@@ -22,5 +22,6 @@ void stop_simulation(void);
 bool check_termination_conditions(void);
 int get_elapsed_time(void);
 void print_simulation_stats(void);
+bool any_family_active(void);
 
 #endif

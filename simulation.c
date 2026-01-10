@@ -142,3 +142,13 @@ void print_simulation_stats(void)
     printf("Bananas Remaining in Maze: %d\n", count_total_bananas());
     printf("========================================\n\n");
 }
+
+bool any_family_active(void)
+{
+    for (int i = 0; i < total_families; i++) {
+        if (!families[i].withdrawn) {
+            return true;
+        }
+    }
+    return false;
+}

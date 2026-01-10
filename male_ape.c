@@ -116,7 +116,7 @@ void* male_ape_thread(void *arg)
     log_event("Male %d (Family %d) started at position (%d,%d)", 
               male->id, family_id, male->position_row, male->position_col);
 
-    while (is_simulation_running() && male->active) {
+    while (is_simulation_running() && male->active && any_family_active()) {
 
         if (families[family_id].withdrawn)
             break;
@@ -173,35 +173,59 @@ void* male_ape_thread(void *arg)
                     /* Fight takes time - babies can steal during this window */
                     sleep_seconds(2);
 
-                    /* Fight resolution with energy and basket size factors */
-                    int my_score = male->energy + random_int(0, 20) + 
-                                   (my_bananas / 2); /* More bananas = more motivated */
-                    int ot_score = families[opp].male->energy + random_int(0, 20) +
-                                   (opp_bananas / 2);
-
-                    if (my_score >= ot_score) {
-                        /* Victory! Steal all opponent's bananas */
-                        int stolen = steal_from_basket(opp, opp_bananas);
-                        add_to_basket(family_id, stolen);
-                        male->energy -= config.male_fight_win_cost;
-                        if (male->energy < 0) male->energy = 0;
-                        families[opp].male->energy -= config.male_fight_lose_cost;
-                        if (families[opp].male->energy < 0) families[opp].male->energy = 0;
-                        graphics_add_male_fight();
-                        
-                        log_event("Male %d WON fight vs Male %d, stole %d bananas! (score: %d vs %d)",
-                                  male->id, families[opp].male->id, stolen, my_score, ot_score);
-                    } else {
-                        /* Defeat - lose all bananas */
+                    /* Check if either family withdrew during fight - withdrawal = automatic loss */
+                    bool i_withdrew = families[family_id].withdrawn;
+                    bool opp_withdrew = families[opp].withdrawn;
+                    
+                    if (i_withdrew && !opp_withdrew) {
+                        /* I withdrew during fight - I lose, transfer my basket to opponent */
                         int lost = steal_from_basket(family_id, my_bananas);
                         add_to_basket(opp, lost);
-                        male->energy -= config.male_fight_lose_cost;
-                        if (male->energy < 0) male->energy = 0;
-                        families[opp].male->energy -= config.male_fight_win_cost;
-                        if (families[opp].male->energy < 0) families[opp].male->energy = 0;
-                        
-                        log_event("Male %d LOST fight vs Male %d, lost %d bananas (score: %d vs %d)",
-                                  male->id, families[opp].male->id, lost, my_score, ot_score);
+                        log_event("Male %d WITHDREW during fight - auto-loss, transferred %d bananas to Male %d",
+                                  male->id, lost, families[opp].male->id);
+                    } else if (opp_withdrew && !i_withdrew) {
+                        /* Opponent withdrew during fight - they lose, I get their basket */
+                        int stolen = steal_from_basket(opp, opp_bananas);
+                        add_to_basket(family_id, stolen);
+                        graphics_add_male_fight();
+                        log_event("Male %d's opponent WITHDREW during fight - auto-win, received %d bananas",
+                                  male->id, stolen);
+                    } else if (i_withdrew && opp_withdrew) {
+                        /* Both withdrew - no transfer, fight ends */
+                        log_event("Both Male %d and Male %d withdrew during fight - no transfer",
+                                  male->id, families[opp].male->id);
+                    } else {
+                        /* Normal fight resolution - neither withdrew */
+                        /* Fight resolution with energy and basket size factors */
+                        int my_score = male->energy + random_int(0, 20) + 
+                                       (my_bananas / 2); /* More bananas = more motivated */
+                        int ot_score = families[opp].male->energy + random_int(0, 20) +
+                                       (opp_bananas / 2);
+
+                        if (my_score >= ot_score) {
+                            /* Victory! Steal all opponent's bananas */
+                            int stolen = steal_from_basket(opp, opp_bananas);
+                            add_to_basket(family_id, stolen);
+                            male->energy -= config.male_fight_win_cost;
+                            if (male->energy < 0) male->energy = 0;
+                            families[opp].male->energy -= config.male_fight_lose_cost;
+                            if (families[opp].male->energy < 0) families[opp].male->energy = 0;
+                            graphics_add_male_fight();
+                            
+                            log_event("Male %d WON fight vs Male %d, stole %d bananas! (score: %d vs %d)",
+                                      male->id, families[opp].male->id, stolen, my_score, ot_score);
+                        } else {
+                            /* Defeat - lose all bananas */
+                            int lost = steal_from_basket(family_id, my_bananas);
+                            add_to_basket(opp, lost);
+                            male->energy -= config.male_fight_lose_cost;
+                            if (male->energy < 0) male->energy = 0;
+                            families[opp].male->energy -= config.male_fight_win_cost;
+                            if (families[opp].male->energy < 0) families[opp].male->energy = 0;
+                            
+                            log_event("Male %d LOST fight vs Male %d, lost %d bananas (score: %d vs %d)",
+                                      male->id, families[opp].male->id, lost, my_score, ot_score);
+                        }
                     }
 
                     male->fighting = false;

@@ -239,7 +239,7 @@ void* baby_ape_thread(void *arg)
     const float APPROACH_DIST = 3.0f; /* Must be within 3 units to steal */
     const float BABY_SPEED = 1.0f;    /* Baby moves 1 unit per step */
 
-    while (is_simulation_running() && baby->active) {
+    while (is_simulation_running() && baby->active && any_family_active()) {
 
         if (families[family_id].withdrawn)
             break;

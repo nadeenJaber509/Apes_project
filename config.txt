@@ -1,56 +1,56 @@
 # ===============================
 # Simulation General Parameters
 # ===============================
-maze_rows=15
-maze_cols=15
-num_families=5
-num_females_per_family=1
-num_babies_per_family=1
-max_simulation_time=120
+maze_rows=15                    # USED: maze.c (maze generation), graphics.c (rendering)
+maze_cols=15                    # USED: maze.c (maze generation), graphics.c (rendering)
+num_families=5                  # USED: family.c (family initialization), graphics.c (sidebar), simulation.c
+num_females_per_family=1        # USED: family.c (female thread creation), baby_ape.c
+num_babies_per_family=1         # USED: family.c (baby thread creation), simulation.c, graphics.c
+max_simulation_time=120         # USED: simulation.c (end condition), graphics.c (timer display)
 
 # ===============================
 # Maze Generation
 # ===============================
-obstacle_percentage=50
-banana_cell_percentage=25
-max_bananas_per_cell=5
+obstacle_percentage=50          # USED: maze.c (wall placement probability)
+banana_cell_percentage=25       # USED: maze.c (banana cell distribution)
+max_bananas_per_cell=5          # USED: maze.c (initial banana count per cell)
 
 # ===============================
 # Stop Conditions
 # ===============================
-family_max_bananas=40
-max_withdrawn_families=2
-max_baby_eaten=10
+family_max_bananas=40           # USED: simulation.c (winner detection), graphics.c (progress bar)
+max_withdrawn_families=2        # USED: simulation.c (end condition), graphics.c (display)
+max_baby_eaten=10               # USED: baby_ape.c (baby stop), simulation.c (check)
 
 # ===============================
 # Female Parameters
 # ===============================
-female_initial_energy=100
-female_collect_cost=2
-female_trip_end_cost=5
-female_fight_win_cost=5
-female_fight_lose_cost=10
-female_rest_threshold=25
-female_rest_gain=20
-female_target_bananas=6
-female_max_capacity=10
+female_initial_energy=100       # USED: family.c (init), female_ape.c (energy cap after rest)
+female_collect_cost=2           # USED: female_ape.c (energy cost per banana collected)
+female_trip_end_cost=5          # USED: female_ape.c (energy cost when returning home)
+female_fight_win_cost=5         # USED: female_ape.c (energy cost for winner of fight)
+female_fight_lose_cost=10       # USED: female_ape.c (energy cost for loser of fight)
+female_rest_threshold=25        # USED: female_ape.c (triggers rest when energy below)
+female_rest_gain=20             # USED: female_ape.c (energy gained while resting)
+female_target_bananas=6         # USED: female_ape.c (minimum bananas before heading home)
+female_max_capacity=10          # USED: female_ape.c (max bananas female can carry)
 
 # ===============================
 # Male Parameters
 # ===============================
-male_initial_energy=120
-male_idle_cost=1
-male_fight_win_cost=10
-male_fight_lose_cost=20
-male_withdraw_threshold=30
+male_initial_energy=120         # USED: family.c (init male energy)
+male_idle_cost=1                # USED: male_ape.c (energy cost per idle cycle)
+male_fight_win_cost=10          # USED: male_ape.c (energy cost for winner of male fight)
+male_fight_lose_cost=20         # USED: male_ape.c (energy cost for loser of male fight)
+male_withdraw_threshold=30      # USED: male_ape.c (triggers family withdrawal)
 
 # ===============================
 # Baby Parameters
 # ===============================
-baby_eat_rate=2
+baby_eat_rate=2                 # USED: baby_ape.c (bananas stolen per steal action)
 
 # ===============================
 # Fight Probability Parameters
 # ===============================
-base_fight_probability=0.05
-banana_fight_factor=0.01
+base_fight_probability=0.05     # USED: male_ape.c (base chance for male fight)
+banana_fight_factor=0.01        # USED: male_ape.c (added fight chance per banana owned)

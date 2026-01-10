@@ -1,38 +1,36 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -pthread -g -O2 -DGL_SILENCE_DEPRECATION
-LDFLAGS = -pthread -lm -framework GLUT -framework OpenGL
+# -------- Project: Apes Simulation --------
 
-SOURCES = main.c \
-          config.c \
-          maze.c \
-          family.c \
-          simulation.c \
-          utils.c \
-          female_ape.c \
-          male_ape.c \
-          baby_ape.c \
-          graphics.c
+CC      = gcc
+TARGET  = ape_simulation
 
-OBJECTS = $(SOURCES:.c=.o)
-TARGET = ape_simulation
+SRC = main.c config.c maze.c family.c simulation.c utils.c female_ape.c male_ape.c baby_ape.c graphics.c
+OBJ = $(SRC:.c=.o)
+
+CFLAGS  = -Wall -Wextra -pthread -g -O2 -DGL_SILENCE_DEPRECATION
+LDFLAGS = -pthread
+
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Darwin)
+    LIBS = -lm -framework GLUT -framework OpenGL
+else
+    LIBS = -lm -lglut -lGL -lGLU
+endif
 
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJ)
 	@echo "Linking $(TARGET)..."
-	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
+	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS) $(LIBS)
 
 %.o: %.c
 	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJ) $(TARGET)
 
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) config.txt
 
-debug: $(TARGET)
-	gdb ./$(TARGET)
-
-.PHONY: all clean run debug
+.PHONY: all clean run

@@ -303,6 +303,19 @@ void* baby_ape_thread(void *arg)
                     log_event("Baby %d stole %d bananas from Family %d basket!",
                               baby->id, stolen, best_target);
                     
+                    char toast_text[32];
+                    float px, py;
+                    
+                    /* Show toast on victim male - red minus for being stolen from */
+                    get_male_screen_position(best_target, &px, &py);
+                    sprintf(toast_text, "-%d", stolen);
+                    add_notification_pixel(px, py, toast_text, 1.0f, 0.3f, 0.3f);
+                    
+                    /* Show toast on baby - green plus for stealing */
+                    get_baby_screen_position(family_id, 0, &px, &py);
+                    sprintf(toast_text, "+%d", stolen);
+                    add_notification_pixel(px, py, toast_text, 0.2f, 1.0f, 0.2f);
+                    
                     /* Decide: eat or give to dad? (50/50 chance) */
                     if (random_int(0, 1) == 0) {
                         /* Eat it! */

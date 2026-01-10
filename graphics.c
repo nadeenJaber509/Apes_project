@@ -45,6 +45,7 @@ typedef struct {
     float r, g, b;
     int frames_remaining;
     bool active;
+    bool is_pixel;  // true = pixel coordinates, false = cell coordinates
 } Notification;
 
 static Notification notifications[MAX_NOTIFICATIONS];
@@ -105,7 +106,7 @@ void graphics_add_collected(int amount) {
     pthread_mutex_unlock(&stats_mutex);
 }
 
-// Add floating notification
+// Add floating notification (cell coordinates)
 void add_notification(float x, float y, const char *text, float r, float g, float b) {
     pthread_mutex_lock(&notif_mutex);
     for (int i = 0; i < MAX_NOTIFICATIONS; i++) {
@@ -119,10 +120,66 @@ void add_notification(float x, float y, const char *text, float r, float g, floa
             notifications[i].b = b;
             notifications[i].frames_remaining = 90; // 3 seconds
             notifications[i].active = true;
+            notifications[i].is_pixel = false;
             break;
         }
     }
     pthread_mutex_unlock(&notif_mutex);
+}
+
+// Add floating notification using pixel coordinates directly
+void add_notification_pixel(float px, float py, const char *text, float r, float g, float b) {
+    pthread_mutex_lock(&notif_mutex);
+    for (int i = 0; i < MAX_NOTIFICATIONS; i++) {
+        if (!notifications[i].active) {
+            notifications[i].x = px;
+            notifications[i].y = py;
+            strncpy(notifications[i].text, text, 31);
+            notifications[i].text[31] = '\0';
+            notifications[i].r = r;
+            notifications[i].g = g;
+            notifications[i].b = b;
+            notifications[i].frames_remaining = 90; // 3 seconds
+            notifications[i].active = true;
+            notifications[i].is_pixel = true;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&notif_mutex);
+}
+
+// Get male's screen position for notifications
+void get_male_screen_position(int family_id, float *px, float *py) {
+    float maze_area_width = WINDOW_WIDTH - SIDEBAR_WIDTH - 100;
+    float maze_area_height = WINDOW_HEIGHT - 100;
+    float cell_size = fminf(maze_area_width / maze.cols, maze_area_height / maze.rows);
+    float offset_x = 55;
+    float offset_y = 40;
+    
+    float maze_width = maze.cols * cell_size;
+    float spacing = maze_width / (total_families + 1);
+    
+    *px = offset_x + spacing * (family_id + 1) - cell_size * 0.6f + cell_size * 0.6f;
+    *py = offset_y - 55 + cell_size * 1.2f + 10;  // Above the male
+}
+
+// Get baby's screen position for notifications (when near dad)
+void get_baby_screen_position(int family_id, int baby_index, float *px, float *py) {
+    float maze_area_width = WINDOW_WIDTH - SIDEBAR_WIDTH - 100;
+    float maze_area_height = WINDOW_HEIGHT - 100;
+    float cell_size = fminf(maze_area_width / maze.cols, maze_area_height / maze.rows);
+    float offset_x = 55;
+    float offset_y = 40;
+    
+    float maze_width = maze.cols * cell_size;
+    float spacing = maze_width / (total_families + 1);
+    float size = cell_size * 0.7f;
+    
+    float male_x = offset_x + spacing * (family_id + 1) - cell_size * 0.6f;
+    float male_size = cell_size * 1.2f;
+    
+    *px = male_x + male_size + 5 + (baby_index * (size + 3)) + size * 0.5f;
+    *py = offset_y - 55 + (male_size - size) / 2 + size + 10;  // Above the baby
 }
 
 // Draw text at position
@@ -491,10 +548,18 @@ static void draw_notifications(float offset_x, float offset_y, float cell_size) 
     for (int i = 0; i < MAX_NOTIFICATIONS; i++) {
         if (notifications[i].active) {
             float alpha = notifications[i].frames_remaining / 90.0f;
-            float rise = (90 - notifications[i].frames_remaining) * 0.3f;
+            float rise = (90 - notifications[i].frames_remaining) * 0.5f;
             
-            float x = offset_x + notifications[i].x * cell_size;
-            float y = offset_y + (maze.rows - 1 - notifications[i].y) * cell_size + rise + cell_size;
+            float x, y;
+            if (notifications[i].is_pixel) {
+                // Use pixel coordinates directly
+                x = notifications[i].x;
+                y = notifications[i].y + rise;
+            } else {
+                // Convert cell coordinates to pixels
+                x = offset_x + notifications[i].x * cell_size;
+                y = offset_y + (maze.rows - 1 - notifications[i].y) * cell_size + rise + cell_size;
+            }
             
             // Shadow
             glColor3f(0.0f, 0.0f, 0.0f);

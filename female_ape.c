@@ -323,6 +323,11 @@ void* female_ape_thread(void *arg)
 {
     FemaleApe *female = (FemaleApe *)arg;
     int family_id = female->family_id;
+    
+    /* Track if this is the first trip (start random) or subsequent (start from exit) */
+    bool first_trip = true;
+    int last_exit_row = -1;
+    int last_exit_col = -1;
 
     log_event("Female %d (Family %d) started", female->id, family_id);
 
@@ -346,13 +351,52 @@ void* female_ape_thread(void *arg)
             continue;
         }
 
-        /* Enter maze at random position */
+        /* Check if there are any bananas left in the maze */
+        int dummy_r, dummy_c;
+        MaleApe *husband = families[family_id].male;
+        
+        /* Use female's current position or a default if no valid position */
+        int check_row = (last_exit_row >= 0) ? last_exit_row : 0;
+        int check_col = (last_exit_col >= 0) ? last_exit_col : 0;
+        
+        bool bananas_exist = find_nearest_banana_bfs(check_row, check_col, &dummy_r, &dummy_c);
+        
+        if (!bananas_exist && husband != NULL) {
+            /* No bananas in maze - go to husband and idle */
+            female->in_maze = false;
+            female->position_row = husband->position_row;
+            female->position_col = husband->position_col;
+            
+            if (!female->resting) {
+                log_event("Female %d: No bananas left, idling with husband at (%d,%d)",
+                          female->id, female->position_row, female->position_col);
+                female->resting = true;  /* Mark as idle/resting */
+            }
+            
+            sleep_seconds(2);  /* Idle for a bit, then check again */
+            continue;
+        }
+        
+        /* Bananas available - stop idling if we were */
+        if (female->resting) {
+            female->resting = false;
+        }
+
+        /* Enter maze - first trip is random, subsequent trips start from last exit */
         female->in_maze = true;
         female->bananas_collected = 0;
-        get_random_empty_position(&female->position_row, &female->position_col);
         
-        log_event("Female %d entered maze at (%d,%d)", 
-                  female->id, female->position_row, female->position_col);
+        if (first_trip || last_exit_row < 0) {
+            get_random_empty_position(&female->position_row, &female->position_col);
+            log_event("Female %d entered maze at random (%d,%d)", 
+                      female->id, female->position_row, female->position_col);
+            first_trip = false;
+        } else {
+            female->position_row = last_exit_row;
+            female->position_col = last_exit_col;
+            log_event("Female %d re-entered maze from exit (%d,%d)", 
+                      female->id, female->position_row, female->position_col);
+        }
 
         int collected = 0;
         int moves_without_progress = 0;
@@ -374,6 +418,7 @@ void* female_ape_thread(void *arg)
                     collected += got;
                     female->bananas_collected = collected;
                     female->energy -= config.female_collect_cost;
+                    if (female->energy < 0) female->energy = 0;
                     moves_without_progress = 0;
                     
                     log_event("Female %d collected %d bananas at (%d,%d), total=%d",
@@ -469,7 +514,9 @@ void* female_ape_thread(void *arg)
                         if (my_score >= ot_score) {
                             /* Win: keep bananas */
                             female->energy -= config.female_fight_win_cost;
+                            if (female->energy < 0) female->energy = 0;
                             nearby->energy -= config.female_fight_lose_cost;
+                            if (nearby->energy < 0) nearby->energy = 0;
                             graphics_add_female_fight();
                             log_event("Female %d won fight! (kept %d bananas)", 
                                       female->id, collected);
@@ -479,7 +526,9 @@ void* female_ape_thread(void *arg)
                             collected -= lost;
                             female->bananas_collected = collected;
                             female->energy -= config.female_fight_lose_cost;
+                            if (female->energy < 0) female->energy = 0;
                             nearby->energy -= config.female_fight_win_cost;
+                            if (nearby->energy < 0) nearby->energy = 0;
                             nearby->bananas_collected += lost;
                             log_event("Female %d lost fight, lost %d bananas (left with %d)", 
                                       female->id, lost, collected);
@@ -511,6 +560,10 @@ void* female_ape_thread(void *arg)
             }
         }
 
+        /* Save current position as exit point for next trip */
+        last_exit_row = female->position_row;
+        last_exit_col = female->position_col;
+        
         female->in_maze = false;
 
         /* Deliver bananas to basket */
@@ -525,6 +578,7 @@ void* female_ape_thread(void *arg)
 
         female->bananas_collected = 0;
         female->energy -= config.female_trip_end_cost;
+        if (female->energy < 0) female->energy = 0;
 
         sleep_seconds(1);
     }

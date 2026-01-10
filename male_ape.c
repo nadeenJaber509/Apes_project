@@ -184,7 +184,9 @@ void* male_ape_thread(void *arg)
                         int stolen = steal_from_basket(opp, opp_bananas);
                         add_to_basket(family_id, stolen);
                         male->energy -= config.male_fight_win_cost;
+                        if (male->energy < 0) male->energy = 0;
                         families[opp].male->energy -= config.male_fight_lose_cost;
+                        if (families[opp].male->energy < 0) families[opp].male->energy = 0;
                         graphics_add_male_fight();
                         
                         log_event("Male %d WON fight vs Male %d, stole %d bananas! (score: %d vs %d)",
@@ -194,7 +196,9 @@ void* male_ape_thread(void *arg)
                         int lost = steal_from_basket(family_id, my_bananas);
                         add_to_basket(opp, lost);
                         male->energy -= config.male_fight_lose_cost;
+                        if (male->energy < 0) male->energy = 0;
                         families[opp].male->energy -= config.male_fight_win_cost;
+                        if (families[opp].male->energy < 0) families[opp].male->energy = 0;
                         
                         log_event("Male %d LOST fight vs Male %d, lost %d bananas (score: %d vs %d)",
                                   male->id, families[opp].male->id, lost, my_score, ot_score);
@@ -211,6 +215,7 @@ void* male_ape_thread(void *arg)
 
         /* Idle energy cost - guarding the basket is tiring */
         male->energy -= config.male_idle_cost;
+        if (male->energy < 0) male->energy = 0;
         
         /* PATROL BEHAVIOR - occasionally move position slightly */
         if (random_int(0, 10) == 0) {

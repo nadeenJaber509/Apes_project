@@ -53,6 +53,7 @@ typedef struct {
     bool withdrawn;
     pthread_mutex_t basket_mutex;
     pthread_mutex_t fight_mutex;
+    pthread_mutex_t steal_mutex;  /* Prevents multiple babies stealing simultaneously */
 } Family;
 
 extern Family *families;

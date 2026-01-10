@@ -57,7 +57,7 @@ static int find_neighbors(int my_family_id, int *neighbors, int max_neighbors, f
  * Weights selection toward opponents with more bananas
  * Returns family_id of opponent or -1 if no valid opponent
  */
-static int select_fight_opponent(int my_family_id, int my_bananas)
+static int select_fight_opponent(int my_family_id)
 {
     const float NEIGHBOR_RADIUS = 5.0f; /* Males within 5 units are neighbors */
     int neighbors[10];
@@ -143,7 +143,7 @@ void* male_ape_thread(void *arg)
         if (random_float(0, 1) < fight_prob) {
 
             /* PROXIMITY-BASED OPPONENT SELECTION - not random! */
-            int opp = select_fight_opponent(family_id, my_bananas);
+            int opp = select_fight_opponent(family_id);
             
             if (opp >= 0 && 
                 !families[opp].withdrawn &&

@@ -36,6 +36,7 @@ void init_families(void)
         
         pthread_mutex_init(&families[i].basket_mutex, NULL);
         pthread_mutex_init(&families[i].fight_mutex, NULL);
+        pthread_mutex_init(&families[i].steal_mutex, NULL);
         
         families[i].female = (FemaleApe *)malloc(sizeof(FemaleApe));
         families[i].female->id = i;
@@ -79,6 +80,7 @@ void cleanup_families(void)
     for (int i = 0; i < total_families; i++) {
         pthread_mutex_destroy(&families[i].basket_mutex);
         pthread_mutex_destroy(&families[i].fight_mutex);
+        pthread_mutex_destroy(&families[i].steal_mutex);
         
         free(families[i].female);
         free(families[i].male);

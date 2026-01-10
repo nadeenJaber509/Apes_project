@@ -291,6 +291,9 @@ void* baby_ape_thread(void *arg)
             }
             
             /* Try to steal if close enough and fight still ongoing */
+            /* Lock steal_mutex to prevent multiple babies stealing simultaneously */
+            pthread_mutex_lock(&families[best_target].steal_mutex);
+            
             if (best_dist <= APPROACH_DIST && 
                 families[best_target].male->fighting &&
                 !families[best_target].withdrawn) {
@@ -331,6 +334,10 @@ void* baby_ape_thread(void *arg)
                     
                     /* ESCAPE BEHAVIOR: Run away after stealing! */
                     log_event("Baby %d running back to safety", baby->id);
+                    
+                    /* Unlock before escaping (allow other babies to try) */
+                    pthread_mutex_unlock(&families[best_target].steal_mutex);
+                    
                     int escape_steps = 5;
                     while (escape_steps > 0 && is_simulation_running()) {
                         move_baby_toward(baby, 
@@ -340,8 +347,16 @@ void* baby_ape_thread(void *arg)
                         escape_steps--;
                         sleep_milliseconds(150); /* Running is slightly faster */
                     }
+                } else {
+                    /* No bananas stolen, unlock */
+                    pthread_mutex_unlock(&families[best_target].steal_mutex);
                 }
-            } else if (move_attempts >= 30) {
+            } else {
+                /* Conditions not met, unlock */
+                pthread_mutex_unlock(&families[best_target].steal_mutex);
+            }
+            
+            if (move_attempts >= 30) {
                 log_event("Baby %d couldn't reach target in time", baby->id);
             }
         } else {

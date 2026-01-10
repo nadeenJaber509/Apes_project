@@ -210,20 +210,6 @@ static void draw_rect_outline(float x1, float y1, float x2, float y2) {
     glEnd();
 }
 
-// Draw banana icon
-static void draw_banana(float cx, float cy, float size) {
-    glColor3f(1.0f, 0.85f, 0.0f);
-    // Simple oval banana
-    glBegin(GL_POLYGON);
-    for (int i = 0; i <= 20; i++) {
-        float angle = 2.0f * 3.14159f * i / 20.0f;
-        float x = cx + size * 0.5f * cosf(angle);
-        float y = cy + size * 0.3f * sinf(angle);
-        glVertex2f(x, y);
-    }
-    glEnd();
-}
-
 // Get family color
 static void get_family_color(int family_id, float *r, float *g, float *b) {
     int idx = family_id % 10;
@@ -484,61 +470,6 @@ static void draw_apes(float offset_x, float offset_y, float cell_size) {
                 draw_text(x + size * 0.2f, y + size * 0.35f, label, GLUT_BITMAP_HELVETICA_10);
             }
         }
-    }
-}
-
-// Draw family baskets around the maze border
-static void draw_baskets(float offset_x, float offset_y, float cell_size) {
-    if (families == NULL) return;
-    
-    float maze_width = maze.cols * cell_size;
-    float maze_height = maze.rows * cell_size;
-    
-    for (int i = 0; i < total_families; i++) {
-        if (families[i].withdrawn) continue;
-        
-        // Position baskets around the maze border
-        float x, y;
-        int per_side = (total_families + 3) / 4;
-        int side = i / per_side;
-        int pos = i % per_side;
-        
-        switch (side) {
-            case 0: // Left
-                x = offset_x - 40;
-                y = offset_y + (pos + 0.5f) * (maze_height / per_side);
-                break;
-            case 1: // Top
-                x = offset_x + (pos + 0.5f) * (maze_width / per_side);
-                y = offset_y + maze_height + 10;
-                break;
-            case 2: // Right
-                x = offset_x + maze_width + 10;
-                y = offset_y + (pos + 0.5f) * (maze_height / per_side);
-                break;
-            default: // Bottom
-                x = offset_x + (pos + 0.5f) * (maze_width / per_side);
-                y = offset_y - 40;
-                break;
-        }
-        
-        float r, g, b;
-        get_family_color(i, &r, &g, &b);
-        
-        // Basket border
-        glColor3f(r, g, b);
-        glLineWidth(3.0f);
-        draw_rect_outline(x, y, x + 32, y + 28);
-        
-        // Basket fill
-        glColor3f(r * 0.3f, g * 0.3f, b * 0.3f);
-        draw_rect(x + 2, y + 2, x + 30, y + 26);
-        
-        // Basket label and count
-        char label[16];
-        sprintf(label, "%d", families[i].basket_bananas);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        draw_text(x + 10, y + 8, label, GLUT_BITMAP_HELVETICA_12);
     }
 }
 

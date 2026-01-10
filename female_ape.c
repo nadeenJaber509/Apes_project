@@ -21,16 +21,18 @@ static int manhattan_distance(int r1, int c1, int r2, int c2)
 }
 
 /**
- * Find nearest banana cell within sight range
+ * Find nearest banana cell in the ENTIRE maze (greedy algorithm)
  * Returns true if banana found, updates target_r and target_c
+ * Searches all accessible cells to find the absolute closest banana
  */
-static bool find_nearest_banana(int from_r, int from_c, int *target_r, int *target_c, int sight_range)
+static bool find_nearest_banana_greedy(int from_r, int from_c, int *target_r, int *target_c)
 {
-    int best_dist = sight_range + 1;
+    int best_dist = config.maze_rows + config.maze_cols + 1; /* Maximum possible distance */
     bool found = false;
 
-    for (int r = from_r - sight_range; r <= from_r + sight_range; r++) {
-        for (int c = from_c - sight_range; c <= from_c + sight_range; c++) {
+    /* Search the entire maze for the nearest banana */
+    for (int r = 0; r < config.maze_rows; r++) {
+        for (int c = 0; c < config.maze_cols; c++) {
             if (!is_valid_position(r, c) || !is_cell_accessible(r, c))
                 continue;
 
@@ -50,47 +52,155 @@ static bool find_nearest_banana(int from_r, int from_c, int *target_r, int *targ
 }
 
 /**
- * Move one step toward target using greedy best-first search
- * Returns true if moved, false if stuck
+ * BFS pathfinding to find next step toward target
+ * Returns the direction to move (0-3) or -1 if no path
+ * This properly navigates around walls in a maze
  */
-static bool move_toward_target(int *current_r, int *current_c, int target_r, int target_c)
+static int bfs_find_next_step(int start_r, int start_c, int target_r, int target_c)
 {
-    int best_r = *current_r;
-    int best_c = *current_c;
-    int best_dist = manhattan_distance(*current_r, *current_c, target_r, target_c);
-
-    /* Check all 4 adjacent cells (up, down, left, right) */
-    int dr[] = {-1, 1, 0, 0};
+    /* Validate inputs */
+    if (!is_valid_position(start_r, start_c) || !is_valid_position(target_r, target_c))
+        return -1;
+    
+    if (start_r == target_r && start_c == target_c)
+        return -1; /* Already at target */
+    
+    int rows = config.maze_rows;
+    int cols = config.maze_cols;
+    
+    if (rows <= 0 || cols <= 0)
+        return -1;
+    
+    /* Allocate visited and parent arrays */
+    bool **visited = malloc(rows * sizeof(bool *));
+    int **parent_dir = malloc(rows * sizeof(int *)); /* Direction we came from */
+    if (!visited || !parent_dir) {
+        free(visited);
+        free(parent_dir);
+        return -1;
+    }
+    
+    for (int i = 0; i < rows; i++) {
+        visited[i] = calloc(cols, sizeof(bool));
+        parent_dir[i] = malloc(cols * sizeof(int));
+        if (!visited[i] || !parent_dir[i]) {
+            /* Cleanup on allocation failure */
+            for (int j = 0; j <= i; j++) {
+                free(visited[j]);
+                free(parent_dir[j]);
+            }
+            free(visited);
+            free(parent_dir);
+            return -1;
+        }
+        for (int j = 0; j < cols; j++) {
+            parent_dir[i][j] = -1;
+        }
+    }
+    
+    /* BFS queue */
+    int *queue_r = malloc(rows * cols * sizeof(int));
+    int *queue_c = malloc(rows * cols * sizeof(int));
+    if (!queue_r || !queue_c) {
+        for (int i = 0; i < rows; i++) {
+            free(visited[i]);
+            free(parent_dir[i]);
+        }
+        free(visited);
+        free(parent_dir);
+        free(queue_r);
+        free(queue_c);
+        return -1;
+    }
+    
+    int front = 0, back = 0;
+    
+    /* Start BFS from target (backwards) to find path */
+    queue_r[back] = target_r;
+    queue_c[back] = target_c;
+    back++;
+    visited[target_r][target_c] = true;
+    
+    int dr[] = {-1, 1, 0, 0};  /* up, down, left, right */
     int dc[] = {0, 0, -1, 1};
-
-    for (int i = 0; i < 4; i++) {
-        int new_r = *current_r + dr[i];
-        int new_c = *current_c + dc[i];
-
-        if (is_cell_accessible(new_r, new_c)) {
-            int dist = manhattan_distance(new_r, new_c, target_r, target_c);
-            if (dist < best_dist) {
-                best_dist = dist;
-                best_r = new_r;
-                best_c = new_c;
+    int opposite[] = {1, 0, 3, 2}; /* opposite directions */
+    
+    bool found = false;
+    
+    while (front < back && !found) {
+        int curr_r = queue_r[front];
+        int curr_c = queue_c[front];
+        front++;
+        
+        for (int i = 0; i < 4; i++) {
+            int new_r = curr_r + dr[i];
+            int new_c = curr_c + dc[i];
+            
+            /* Check if we can move FROM new cell TO current cell (backwards BFS) */
+            if (is_valid_position(new_r, new_c) && !visited[new_r][new_c] &&
+                can_move(new_r, new_c, curr_r, curr_c)) {
+                
+                visited[new_r][new_c] = true;
+                parent_dir[new_r][new_c] = opposite[i]; /* Direction to go toward target */
+                
+                if (new_r == start_r && new_c == start_c) {
+                    found = true;
+                    break;
+                }
+                
+                queue_r[back] = new_r;
+                queue_c[back] = new_c;
+                back++;
             }
         }
     }
-
-    /* If we found a better position, move there */
-    if (best_r != *current_r || best_c != *current_c) {
-        *current_r = best_r;
-        *current_c = best_c;
-        return true;
+    
+    int result = -1;
+    if (found) {
+        result = parent_dir[start_r][start_c];
     }
-
-    /* If stuck, try random adjacent cell */
-    for (int attempts = 0; attempts < 4; attempts++) {
-        int dir = random_int(0, 3);
-        int new_r = *current_r + dr[dir];
-        int new_c = *current_r + dc[dir];
-
-        if (is_cell_accessible(new_r, new_c)) {
+    
+    /* Cleanup */
+    for (int i = 0; i < rows; i++) {
+        free(visited[i]);
+        free(parent_dir[i]);
+    }
+    free(visited);
+    free(parent_dir);
+    free(queue_r);
+    free(queue_c);
+    
+    return result;
+}
+/**
+ * Move one step toward target using BFS pathfinding
+ * Returns true if moved, false if stuck (no path exists)
+ * Properly navigates around walls in a maze
+ */
+static bool move_toward_target(int *current_r, int *current_c, int target_r, int target_c)
+{
+    int dr[] = {-1, 1, 0, 0};  /* up, down, left, right */
+    int dc[] = {0, 0, -1, 1};
+    
+    /* Use BFS to find the best direction */
+    int direction = bfs_find_next_step(*current_r, *current_c, target_r, target_c);
+    
+    if (direction >= 0 && direction < 4) {
+        int new_r = *current_r + dr[direction];
+        int new_c = *current_c + dc[direction];
+        
+        if (can_move(*current_r, *current_c, new_r, new_c)) {
+            *current_r = new_r;
+            *current_c = new_c;
+            return true;
+        }
+    }
+    
+    /* BFS failed, try any available move */
+    for (int i = 0; i < 4; i++) {
+        int new_r = *current_r + dr[i];
+        int new_c = *current_c + dc[i];
+        if (can_move(*current_r, *current_c, new_r, new_c)) {
             *current_r = new_r;
             *current_c = new_c;
             return true;
@@ -135,17 +245,15 @@ static FemaleApe* find_nearby_female(int my_family_id, int pos_r, int pos_c, int
 }
 
 /**
- * Female Ape Thread - Main behavior loop
+ * Female Ape Thread - Main behavior loop (GREEDY ALGORITHM)
  * 
  * Behavior:
- * - Intelligently searches for bananas using pathfinding
- * - Moves step-by-step with realistic travel time
- * - Detects nearby females while exiting (2-unit radius)
- * - Fights over collected bananas with proximity detection
- * - AVOIDS fighting when empty-handed (no infinite loops!)
+ * - Uses GREEDY algorithm: always goes to nearest banana in entire maze
+ * - Collects bananas until reaching target
+ * - Immediately delivers to basket
+ * - Repeats until tired
  * 
- * Movement: Greedy best-first search toward nearest visible banana
- * Sight range: 5 cells
+ * Movement: Greedy best-first search toward nearest banana globally
  * Combat range: 2 cells
  */
 void* female_ape_thread(void *arg)
@@ -184,48 +292,59 @@ void* female_ape_thread(void *arg)
                   female->id, female->position_row, female->position_col);
 
         int collected = 0;
-        int moves_without_banana = 0;
-        int sight_range = 5; /* Can see bananas within 5 cells */
+        int moves_without_progress = 0;
 
-        /* INTELLIGENT BANANA COLLECTION with pathfinding */
-        while (collected < config.female_target_bananas &&
-               moves_without_banana < 30 &&
+        /* GREEDY BANANA COLLECTION: Find nearest banana, collect on the way up to max_capacity */
+        while (collected < config.female_max_capacity &&
+               moves_without_progress < 50 &&
                is_simulation_running() &&
                !families[family_id].withdrawn) {
 
-            /* Try to find nearest banana */
-            int target_r, target_c;
-            if (find_nearest_banana(female->position_row, female->position_col, 
-                                   &target_r, &target_c, sight_range)) {
-                
-                /* Move toward banana */
-                if (move_toward_target(&female->position_row, &female->position_col,
-                                      target_r, target_c)) {
-                    
-                    /* Try to collect from current cell */
-                    int got = collect_bananas_from_cell(
-                        female->position_row, female->position_col, 
-                        config.female_target_bananas - collected);
+            /* First, check if current cell has bananas - always collect if there's room */
+            int current_bananas = get_cell_bananas(female->position_row, female->position_col);
+            if (current_bananas > 0 && collected < config.female_max_capacity) {
+                int can_take = config.female_max_capacity - collected;
+                int got = collect_bananas_from_cell(
+                    female->position_row, female->position_col, can_take);
 
-                    if (got > 0) {
-                        collected += got;
-                        female->bananas_collected = collected;
-                        female->energy -= config.female_collect_cost;
-                        moves_without_banana = 0;
-                        
-                        log_event("Female %d collected %d bananas at (%d,%d), total=%d",
-                                  female->id, got, female->position_row, 
-                                  female->position_col, collected);
-                    } else {
-                        moves_without_banana++;
+                if (got > 0) {
+                    collected += got;
+                    female->bananas_collected = collected;
+                    female->energy -= config.female_collect_cost;
+                    moves_without_progress = 0;
+                    
+                    log_event("Female %d collected %d bananas at (%d,%d), total=%d",
+                              female->id, got, female->position_row, 
+                              female->position_col, collected);
+                    
+                    /* If we reached target, start exiting */
+                    if (collected >= config.female_target_bananas) {
+                        break;
                     }
                 }
+            }
+
+            /* If at max capacity, stop collecting and exit */
+            if (collected >= config.female_max_capacity) {
+                break;
+            }
+
+            /* GREEDY: Find the nearest banana in the entire maze */
+            int target_r, target_c;
+            if (find_nearest_banana_greedy(female->position_row, female->position_col, 
+                                           &target_r, &target_c)) {
+                
+                /* Move toward the nearest banana */
+                if (move_toward_target(&female->position_row, &female->position_col,
+                                      target_r, target_c)) {
+                    moves_without_progress = 0;
+                } else {
+                    moves_without_progress++;
+                }
             } else {
-                /* No banana in sight, explore randomly */
-                move_toward_target(&female->position_row, &female->position_col,
-                                  random_int(0, config.maze_rows - 1),
-                                  random_int(0, config.maze_cols - 1));
-                moves_without_banana++;
+                /* No bananas left in maze, stop collecting */
+                log_event("Female %d found no more bananas in maze", female->id);
+                break;
             }
 
             /* Movement takes time - realistic travel delay */

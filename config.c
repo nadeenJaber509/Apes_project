@@ -30,6 +30,7 @@ static void set_default_config(void)
     config.female_rest_threshold = 25;
     config.female_rest_gain = 20;
     config.female_target_bananas = 6;
+    config.female_max_capacity = 10;
 
     config.male_initial_energy = 120;
     config.male_idle_cost = 1;
@@ -81,6 +82,7 @@ void read_config(const char *filename)
         sscanf(line, "female_rest_threshold=%d", &config.female_rest_threshold);
         sscanf(line, "female_rest_gain=%d", &config.female_rest_gain);
         sscanf(line, "female_target_bananas=%d", &config.female_target_bananas);
+        sscanf(line, "female_max_capacity=%d", &config.female_max_capacity);
 
         sscanf(line, "male_initial_energy=%d", &config.male_initial_energy);
         sscanf(line, "male_idle_cost=%d", &config.male_idle_cost);

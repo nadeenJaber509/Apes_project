@@ -11,7 +11,7 @@ max_simulation_time=120
 # ===============================
 # Maze Generation
 # ===============================
-obstacle_percentage=15
+obstacle_percentage=50
 banana_cell_percentage=25
 max_bananas_per_cell=5
 
@@ -33,6 +33,7 @@ female_fight_lose_cost=10
 female_rest_threshold=25
 female_rest_gain=20
 female_target_bananas=6
+female_max_capacity=10
 
 # ===============================
 # Male Parameters

@@ -50,9 +50,9 @@ typedef struct {
 static Notification notifications[MAX_NOTIFICATIONS];
 static pthread_mutex_t notif_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// Event log for sidebar display
-#define MAX_LOG_LINES 12
-#define MAX_LOG_LENGTH 40
+// Event log for sidebar display - increased buffer size
+#define MAX_LOG_LINES 50
+#define MAX_LOG_LENGTH 45
 static char event_log[MAX_LOG_LINES][MAX_LOG_LENGTH];
 static int log_index = 0;
 static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -175,52 +175,117 @@ static void get_family_color(int family_id, float *r, float *g, float *b) {
     *b = family_colors[idx][2];
 }
 
-// Draw the maze area
+// Wall thickness for thin walls
+#define WALL_THICKNESS 3.0f
+
+// Draw a thin wall segment
+static void draw_wall_segment(float x1, float y1, float x2, float y2, float thickness) {
+    // Wall color (brownish like brick)
+    glColor3f(0.4f, 0.28f, 0.2f);
+    
+    if (x1 == x2) {
+        // Vertical wall
+        draw_rect(x1 - thickness/2, y1, x1 + thickness/2, y2);
+        // Highlight
+        glColor3f(0.55f, 0.4f, 0.32f);
+        draw_rect(x1 - thickness/2, y1, x1 - thickness/4, y2);
+    } else {
+        // Horizontal wall
+        draw_rect(x1, y1 - thickness/2, x2, y1 + thickness/2);
+        // Highlight
+        glColor3f(0.55f, 0.4f, 0.32f);
+        draw_rect(x1, y1, x2, y1 + thickness/2);
+    }
+}
+
+// Draw the maze area with thin walls
 static void draw_maze(float offset_x, float offset_y, float cell_size) {
     if (maze.cells == NULL) return;
     
-    // Draw maze background (dark border)
-    glColor3f(0.08f, 0.15f, 0.08f);
-    draw_rect(offset_x - 8, offset_y - 8, 
-              offset_x + maze.cols * cell_size + 8, 
-              offset_y + maze.rows * cell_size + 8);
+    float maze_width = maze.cols * cell_size;
+    float maze_height = maze.rows * cell_size;
     
+    // Draw maze background (floor)
+    glColor3f(0.35f, 0.55f, 0.35f);
+    draw_rect(offset_x, offset_y, offset_x + maze_width, offset_y + maze_height);
+    
+    // Draw cell contents first (bananas)
     for (int r = 0; r < maze.rows; r++) {
         for (int c = 0; c < maze.cols; c++) {
             float x = offset_x + c * cell_size;
             float y = offset_y + (maze.rows - 1 - r) * cell_size;
             Cell cell = maze.cells[r][c];
             
-            if (cell.type == CELL_OBSTACLE) {
-                // Dark green walls (like in reference)
-                glColor3f(0.1f, 0.2f, 0.1f);
-                draw_rect(x, y, x + cell_size, y + cell_size);
-                // Darker border for depth
-                glColor3f(0.05f, 0.1f, 0.05f);
-                glLineWidth(1.0f);
-                draw_rect_outline(x, y, x + cell_size, y + cell_size);
-            } else {
-                // Light green path
-                glColor3f(0.35f, 0.55f, 0.35f);
-                draw_rect(x, y, x + cell_size, y + cell_size);
+            // Subtle cell grid
+            glColor3f(0.32f, 0.52f, 0.32f);
+            glLineWidth(1.0f);
+            draw_rect_outline(x + 1, y + 1, x + cell_size - 1, y + cell_size - 1);
+            
+            // Draw bananas as yellow circles with count
+            if (cell.type == CELL_BANANA && cell.bananas > 0) {
+                glColor3f(1.0f, 0.8f, 0.0f);
+                float cx = x + cell_size / 2;
+                float cy = y + cell_size / 2;
+                float radius = cell_size * 0.25f;
                 
-                // Grid lines
-                glColor3f(0.25f, 0.4f, 0.25f);
-                glLineWidth(1.0f);
-                draw_rect_outline(x, y, x + cell_size, y + cell_size);
-                
-                // Draw bananas (yellow dots like in reference)
-                if (cell.type == CELL_BANANA && cell.bananas > 0) {
-                    glColor3f(1.0f, 0.85f, 0.0f);
-                    draw_banana(x + cell_size/2, y + cell_size/2, cell_size * 0.5f);
-                    
-                    // Show banana count
-                    char count[8];
-                    sprintf(count, "%d", cell.bananas);
-                    glColor3f(0.0f, 0.0f, 0.0f);
-                    draw_text(x + cell_size * 0.4f, y + cell_size * 0.35f, count, GLUT_BITMAP_HELVETICA_12);
+                glBegin(GL_POLYGON);
+                for (int i = 0; i <= 16; i++) {
+                    float angle = 2.0f * 3.14159f * i / 16.0f;
+                    glVertex2f(cx + radius * cosf(angle), cy + radius * sinf(angle));
                 }
+                glEnd();
+                
+                // Display banana count on cell
+                char count_str[8];
+                sprintf(count_str, "%d", cell.bananas);
+                glColor3f(0.0f, 0.0f, 0.0f);
+                draw_text(cx - 3, cy - 4, count_str, GLUT_BITMAP_HELVETICA_10);
             }
+        }
+    }
+    
+    // Draw thin walls
+    for (int r = 0; r < maze.rows; r++) {
+        for (int c = 0; c < maze.cols; c++) {
+            float x = offset_x + c * cell_size;
+            float y = offset_y + (maze.rows - 1 - r) * cell_size;
+            Cell cell = maze.cells[r][c];
+            
+            // Draw top wall
+            if (cell.walls & WALL_TOP) {
+                draw_wall_segment(x, y + cell_size, x + cell_size, y + cell_size, WALL_THICKNESS);
+            }
+            
+            // Draw right wall
+            if (cell.walls & WALL_RIGHT) {
+                draw_wall_segment(x + cell_size, y, x + cell_size, y + cell_size, WALL_THICKNESS);
+            }
+            
+            // Draw bottom wall (only for bottom row to avoid double-drawing)
+            if (r == maze.rows - 1 && (cell.walls & WALL_BOTTOM)) {
+                draw_wall_segment(x, y, x + cell_size, y, WALL_THICKNESS);
+            }
+            
+            // Draw left wall (only for left column to avoid double-drawing)
+            if (c == 0 && (cell.walls & WALL_LEFT)) {
+                draw_wall_segment(x, y, x, y + cell_size, WALL_THICKNESS);
+            }
+        }
+    }
+    
+    // Draw outer border walls (thicker)
+    glColor3f(0.3f, 0.2f, 0.15f);
+    glLineWidth(4.0f);
+    draw_rect_outline(offset_x, offset_y, offset_x + maze_width, offset_y + maze_height);
+    
+    // Draw corner posts
+    float post_size = WALL_THICKNESS + 2;
+    glColor3f(0.45f, 0.32f, 0.25f);
+    for (int r = 0; r <= maze.rows; r++) {
+        for (int c = 0; c <= maze.cols; c++) {
+            float px = offset_x + c * cell_size;
+            float py = offset_y + (maze.rows - r) * cell_size;
+            draw_rect(px - post_size/2, py - post_size/2, px + post_size/2, py + post_size/2);
         }
     }
 }
@@ -229,24 +294,20 @@ static void draw_maze(float offset_x, float offset_y, float cell_size) {
 static void draw_apes(float offset_x, float offset_y, float cell_size) {
     if (families == NULL) return;
     
-    // Draw Males (squares with colored borders) - positioned at bottom border
+    // Calculate spacing for males along bottom border
+    float maze_width = maze.cols * cell_size;
+    float spacing = maze_width / (total_families + 1);
+    
+    // Draw Males (squares with colored borders) - distributed evenly along bottom
     for (int i = 0; i < total_families; i++) {
         MaleApe *male = families[i].male;
         if (male->active && !families[i].withdrawn) {
             float r, g, b;
             get_family_color(i, &r, &g, &b);
             
-            // Males patrol outside maze - draw at bottom border area
-            float x, y;
-            if (male->position_row >= maze.rows) {
-                // Outside maze - draw at bottom border
-                x = offset_x + male->position_col * cell_size * 0.5f;
-                y = offset_y - 55;  // Below maze
-            } else {
-                // Inside maze (shouldn't happen normally)
-                x = offset_x + male->position_col * cell_size;
-                y = offset_y + (maze.rows - 1 - male->position_row) * cell_size;
-            }
+            // Position males evenly distributed along bottom border
+            float x = offset_x + spacing * (i + 1) - cell_size * 0.6f;
+            float y = offset_y - 55;  // Below maze
             
             // Shake if fighting
             if (male->fighting) {
@@ -269,12 +330,17 @@ static void draw_apes(float offset_x, float offset_y, float cell_size) {
             char label[16];
             sprintf(label, "M%d", i);
             glColor3f(1.0f, 1.0f, 1.0f);
-            draw_text(x + size * 0.3f, y + size * 0.55f, label, GLUT_BITMAP_HELVETICA_10);
+            draw_text(x + size * 0.3f, y + size * 0.7f, label, GLUT_BITMAP_HELVETICA_10);
+            
+            // Basket banana count (displayed on the male)
+            sprintf(label, "B:%d", families[i].basket_bananas);
+            glColor3f(1.0f, 0.8f, 0.0f);
+            draw_text(x + size * 0.1f, y + size * 0.45f, label, GLUT_BITMAP_HELVETICA_10);
             
             // Energy
             sprintf(label, "E:%d", male->energy);
-            glColor3f(0.8f, 0.8f, 0.0f);
-            draw_text(x + size * 0.15f, y + size * 0.2f, label, GLUT_BITMAP_HELVETICA_10);
+            glColor3f(0.6f, 0.8f, 0.6f);
+            draw_text(x + size * 0.1f, y + size * 0.2f, label, GLUT_BITMAP_HELVETICA_10);
         }
     }
     
@@ -319,7 +385,10 @@ static void draw_apes(float offset_x, float offset_y, float cell_size) {
         }
     }
     
-    // Draw Babies (smallest, with border) - positioned near their dad
+    // Calculate spacing for babies (same as males)
+    float baby_spacing = maze_width / (total_families + 1);
+
+    // Draw Babies (smallest, with border) - positioned next to their dad (male)
     for (int i = 0; i < total_families; i++) {
         for (int j = 0; j < families[i].num_babies; j++) {
             BabyApe *baby = &families[i].babies[j];
@@ -327,19 +396,20 @@ static void draw_apes(float offset_x, float offset_y, float cell_size) {
                 float r, g, b;
                 get_family_color(i, &r, &g, &b);
                 
-                // Babies patrol outside maze with dad - draw at bottom border
                 float x, y;
+                float size = cell_size * 0.7f;
+                
                 if (baby->position_row >= maze.rows) {
-                    // Outside maze - draw at bottom border near dad
-                    x = offset_x + baby->position_col * cell_size * 0.5f;
-                    y = offset_y - 35;  // Slightly above dad
+                    // Outside maze - position right next to dad (to the right of the male)
+                    float male_x = offset_x + baby_spacing * (i + 1) - cell_size * 0.6f;
+                    float male_size = cell_size * 1.2f;
+                    x = male_x + male_size + 5 + (j * (size + 3));  // Next to male, offset for multiple babies
+                    y = offset_y - 55 + (male_size - size) / 2;  // Vertically centered with male
                 } else {
                     // Inside maze (when stealing)
                     x = offset_x + baby->position_col * cell_size;
                     y = offset_y + (maze.rows - 1 - baby->position_row) * cell_size;
                 }
-                
-                float size = cell_size * 0.7f;
                 
                 // Border
                 glColor3f(r, g, b);
@@ -562,53 +632,65 @@ static void draw_sidebar(float x, float y, float width, float height) {
     
     text_y -= 10;
     
-    // LEGEND header (simplified - just symbols)
+    // LEGEND header with full family colors
     glColor3f(1.0f, 1.0f, 1.0f);
     draw_text(text_x + 65, text_y, "LEGEND", GLUT_BITMAP_HELVETICA_12);
     text_y -= 16;
     
-    // Simplified legend
-    glColor3f(0.7f, 0.7f, 0.7f);
-    draw_text(text_x, text_y, "M=Male F=Female B=Baby", GLUT_BITMAP_HELVETICA_10);
-    text_y -= 20;
+    // Full family legend with color boxes (like reference image)
+    int legend_count = total_families < 8 ? total_families : 8;
+    for (int i = 0; i < legend_count; i++) {
+        float r, g, b;
+        get_family_color(i, &r, &g, &b);
+        
+        // Color box
+        glColor3f(r, g, b);
+        draw_rect(text_x + 5, text_y - 2, text_x + 20, text_y + 10);
+        
+        // Border
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glLineWidth(1.0f);
+        draw_rect_outline(text_x + 5, text_y - 2, text_x + 20, text_y + 10);
+        
+        // Label
+        sprintf(buf, "Family %d", i);
+        glColor3f(0.85f, 0.85f, 0.85f);
+        draw_text(text_x + 25, text_y, buf, GLUT_BITMAP_HELVETICA_10);
+        
+        text_y -= 14;
+    }
     
-    // EVENT LOG header
-    glColor3f(0.3f, 0.8f, 1.0f);
-    draw_text(text_x + 45, text_y, "EVENT LOG", GLUT_BITMAP_HELVETICA_12);
+    // EVENT LOG section
+    text_y -= 10;
+    glColor3f(1.0f, 1.0f, 1.0f);
+    draw_text(text_x + 50, text_y, "EVENT LOG", GLUT_BITMAP_HELVETICA_12);
     text_y -= 5;
     
-    // Draw log background
-    glColor3f(0.05f, 0.08f, 0.1f);
-    draw_rect(x + 5, y + 10, x + width - 5, text_y);
-    
-    // Draw log border
-    glColor3f(0.2f, 0.4f, 0.5f);
+    // Horizontal line
+    glColor3f(0.4f, 0.4f, 0.5f);
     glLineWidth(1.0f);
-    draw_rect_outline(x + 5, y + 10, x + width - 5, text_y);
-    
+    glBegin(GL_LINES);
+    glVertex2f(x + 10, text_y);
+    glVertex2f(x + width - 10, text_y);
+    glEnd();
     text_y -= 12;
     
-    // Draw event log lines
+    // Draw event log entries (fill remaining space)
     pthread_mutex_lock(&log_mutex);
-    for (int i = 0; i < MAX_LOG_LINES; i++) {
+    int available_lines = (int)((text_y - y - 10) / 11);  // Calculate how many lines fit
+    if (available_lines > MAX_LOG_LINES) available_lines = MAX_LOG_LINES;
+    if (available_lines < 1) available_lines = 1;
+    
+    glColor3f(0.7f, 0.75f, 0.7f);
+    for (int i = 0; i < available_lines; i++) {
         int idx = (log_index - 1 - i + MAX_LOG_LINES) % MAX_LOG_LINES;
         if (event_log[idx][0] != '\0') {
-            // Color based on event type
-            if (strstr(event_log[idx], "fight") || strstr(event_log[idx], "Fight") || 
-                strstr(event_log[idx], "WON") || strstr(event_log[idx], "LOST")) {
-                glColor3f(1.0f, 0.5f, 0.5f);  // Red for fights
-            } else if (strstr(event_log[idx], "stole") || strstr(event_log[idx], "Steal")) {
-                glColor3f(1.0f, 0.8f, 0.3f);  // Yellow for steals
-            } else if (strstr(event_log[idx], "delivered") || strstr(event_log[idx], "collected")) {
-                glColor3f(0.5f, 1.0f, 0.5f);  // Green for collection
-            } else if (strstr(event_log[idx], "Withdrawn") || strstr(event_log[idx], "stopped")) {
-                glColor3f(1.0f, 0.3f, 0.3f);  // Bright red for withdrawals
-            } else {
-                glColor3f(0.6f, 0.7f, 0.8f);  // Light blue for other events
-            }
-            draw_text(text_x - 5, text_y, event_log[idx], GLUT_BITMAP_HELVETICA_10);
+            // Truncate long messages to fit sidebar
+            char truncated[40];
+            strncpy(truncated, event_log[idx], 39);
+            truncated[39] = '\0';
+            draw_text(text_x, text_y, truncated, GLUT_BITMAP_HELVETICA_10);
             text_y -= 11;
-            if (text_y < y + 15) break;
         }
     }
     pthread_mutex_unlock(&log_mutex);
@@ -682,8 +764,8 @@ void draw_scene(void) {
     // Draw maze
     draw_maze(offset_x, offset_y, cell_size);
     
-    // Draw baskets
-    draw_baskets(offset_x, offset_y, cell_size);
+    // Baskets are now displayed on the males, not separately
+    // draw_baskets(offset_x, offset_y, cell_size);
     
     // Draw apes
     draw_apes(offset_x, offset_y, cell_size);

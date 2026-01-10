@@ -29,6 +29,7 @@ typedef struct {
     int female_rest_threshold;
     int female_rest_gain;
     int female_target_bananas;
+    int female_max_capacity;      // Maximum bananas female can carry
 
     /* Male */
     int male_initial_energy;

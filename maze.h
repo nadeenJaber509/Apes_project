@@ -6,13 +6,20 @@
 
 typedef enum {
     CELL_EMPTY,
-    CELL_OBSTACLE,
+    CELL_OBSTACLE,  // Keep for compatibility but won't be used much
     CELL_BANANA
 } CellType;
+
+// Wall flags for each cell (thin walls between cells)
+#define WALL_TOP    0x01
+#define WALL_RIGHT  0x02
+#define WALL_BOTTOM 0x04
+#define WALL_LEFT   0x08
 
 typedef struct {
     CellType type;
     int bananas;
+    unsigned char walls;  // Bit flags for walls (WALL_TOP, WALL_RIGHT, etc.)
     pthread_mutex_t mutex;
 } Cell;
 
@@ -34,6 +41,7 @@ void print_maze_stats(void);
 /* Basic cell operations */
 bool is_valid_position(int row, int col);
 bool is_cell_accessible(int row, int col);
+bool can_move(int from_row, int from_col, int to_row, int to_col);  // NEW: Check if movement is allowed (no wall blocking)
 int collect_bananas_from_cell(int row, int col, int amount);
 int get_cell_bananas(int row, int col);
 void add_bananas_to_cell(int row, int col, int amount);

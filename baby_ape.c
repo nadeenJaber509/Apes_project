@@ -9,6 +9,122 @@
 #include "simulation.h"
 #include "utils.h"
 #include "graphics.h"
+#include "maze.h"
+
+/**
+ * BFS pathfinding to find next step toward target
+ * Returns the direction to move (0-3) or -1 if no path
+ */
+static int baby_bfs_next_step(int start_r, int start_c, int target_r, int target_c)
+{
+    /* Validate inputs */
+    if (!is_valid_position(start_r, start_c) || !is_valid_position(target_r, target_c))
+        return -1;
+    
+    if (start_r == target_r && start_c == target_c)
+        return -1;
+    
+    int rows = config.maze_rows;
+    int cols = config.maze_cols;
+    
+    if (rows <= 0 || cols <= 0)
+        return -1;
+    
+    bool **visited = malloc(rows * sizeof(bool *));
+    int **parent_dir = malloc(rows * sizeof(int *));
+    if (!visited || !parent_dir) {
+        free(visited);
+        free(parent_dir);
+        return -1;
+    }
+    
+    for (int i = 0; i < rows; i++) {
+        visited[i] = calloc(cols, sizeof(bool));
+        parent_dir[i] = malloc(cols * sizeof(int));
+        if (!visited[i] || !parent_dir[i]) {
+            for (int j = 0; j <= i; j++) {
+                free(visited[j]);
+                free(parent_dir[j]);
+            }
+            free(visited);
+            free(parent_dir);
+            return -1;
+        }
+        for (int j = 0; j < cols; j++) {
+            parent_dir[i][j] = -1;
+        }
+    }
+    
+    int *queue_r = malloc(rows * cols * sizeof(int));
+    int *queue_c = malloc(rows * cols * sizeof(int));
+    if (!queue_r || !queue_c) {
+        for (int i = 0; i < rows; i++) {
+            free(visited[i]);
+            free(parent_dir[i]);
+        }
+        free(visited);
+        free(parent_dir);
+        free(queue_r);
+        free(queue_c);
+        return -1;
+    }
+    
+    int front = 0, back = 0;
+    
+    queue_r[back] = target_r;
+    queue_c[back] = target_c;
+    back++;
+    visited[target_r][target_c] = true;
+    
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+    int opposite[] = {1, 0, 3, 2};
+    
+    bool found = false;
+    
+    while (front < back && !found) {
+        int curr_r = queue_r[front];
+        int curr_c = queue_c[front];
+        front++;
+        
+        for (int i = 0; i < 4; i++) {
+            int new_r = curr_r + dr[i];
+            int new_c = curr_c + dc[i];
+            
+            if (is_valid_position(new_r, new_c) && !visited[new_r][new_c] &&
+                can_move(new_r, new_c, curr_r, curr_c)) {
+                
+                visited[new_r][new_c] = true;
+                parent_dir[new_r][new_c] = opposite[i];
+                
+                if (new_r == start_r && new_c == start_c) {
+                    found = true;
+                    break;
+                }
+                
+                queue_r[back] = new_r;
+                queue_c[back] = new_c;
+                back++;
+            }
+        }
+    }
+    
+    int result = -1;
+    if (found) {
+        result = parent_dir[start_r][start_c];
+    }
+    
+    for (int i = 0; i < rows; i++) {
+        free(visited[i]);
+        free(parent_dir[i]);
+    }
+    free(visited);
+    free(parent_dir);
+    free(queue_r);
+    free(queue_c);
+    
+    return result;
+}
 
 /**
  * Calculate Euclidean distance between baby and target basket
@@ -56,33 +172,40 @@ static int find_steal_opportunities(BabyApe *baby, int my_family_id,
 }
 
 /**
- * Move baby toward target position with given speed
- * Baby moves gradually, not instantly
+ * Move baby toward target position using BFS pathfinding
+ * Baby moves gradually, respecting walls
  */
 static void move_baby_toward(BabyApe *baby, int target_row, int target_col, float speed)
 {
-    int dr = target_row - baby->position_row;
-    int dc = target_col - baby->position_col;
+    (void)speed; /* Speed is 1 step at a time with BFS */
     
-    /* Calculate distance */
-    float dist = sqrt(dr * dr + dc * dc);
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
     
-    if (dist < 0.1f)
-        return; /* Already at target */
+    /* Use BFS to find next step */
+    int direction = baby_bfs_next_step(baby->position_row, baby->position_col, 
+                                        target_row, target_col);
     
-    /* Normalize and move by speed amount */
-    if (abs(dr) > abs(dc)) {
-        /* Move vertically */
-        if (dr > 0)
-            baby->position_row += (int)speed;
-        else
-            baby->position_row -= (int)speed;
-    } else if (dc != 0) {
-        /* Move horizontally */
-        if (dc > 0)
-            baby->position_col += (int)speed;
-        else
-            baby->position_col -= (int)speed;
+    if (direction >= 0 && direction < 4) {
+        int new_r = baby->position_row + dr[direction];
+        int new_c = baby->position_col + dc[direction];
+        
+        if (can_move(baby->position_row, baby->position_col, new_r, new_c)) {
+            baby->position_row = new_r;
+            baby->position_col = new_c;
+            return;
+        }
+    }
+    
+    /* BFS failed, try any available direction */
+    for (int i = 0; i < 4; i++) {
+        int new_r = baby->position_row + dr[i];
+        int new_c = baby->position_col + dc[i];
+        if (can_move(baby->position_row, baby->position_col, new_r, new_c)) {
+            baby->position_row = new_r;
+            baby->position_col = new_c;
+            return;
+        }
     }
 }
 

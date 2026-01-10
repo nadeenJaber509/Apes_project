@@ -9,6 +9,12 @@ A multi-threaded simulation of ape families collecting bananas in a maze using O
 - **Configurable parameters** via `config.txt`
 - **Dynamic maze generation** with randomized obstacles and bananas
 - **Complex interactions**: fights, stealing, energy management
+- **Energy State Visual Feedback**
+  - Energy bars: Replaced text energy displays with color-coded progress bars above each ape
+  - 🟢 Green: High energy (60%+)
+  - 🟡 Yellow: Medium energy (30-60%)
+  - 🔴 Red: Low energy (<30%)
+  - Real-time updates: Bars dynamically change as apes fight and rest
 
 ## Requirements
 

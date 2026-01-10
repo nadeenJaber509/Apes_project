@@ -210,6 +210,36 @@ static void draw_rect_outline(float x1, float y1, float x2, float y2) {
     glEnd();
 }
 
+// Draw energy bar above an ape
+static void draw_energy_bar(float x, float y, float width, int current_energy, int max_energy) {
+    float bar_height = 4.0f;
+    float bar_y = y - 8;
+    
+    // Background
+    glColor3f(0.2f, 0.2f, 0.2f);
+    draw_rect(x, bar_y, x + width, bar_y + bar_height);
+    
+    // Energy fill
+    float energy_ratio = (float)current_energy / (float)max_energy;
+    if (energy_ratio > 1.0f) energy_ratio = 1.0f;
+    
+    // Color based on energy level
+    if (energy_ratio > 0.6f) {
+        glColor3f(0.0f, 1.0f, 0.0f); // Green
+    } else if (energy_ratio > 0.3f) {
+        glColor3f(1.0f, 1.0f, 0.0f); // Yellow
+    } else {
+        glColor3f(1.0f, 0.0f, 0.0f); // Red
+    }
+    
+    draw_rect(x, bar_y, x + width * energy_ratio, bar_y + bar_height);
+    
+    // Border
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glLineWidth(1.0f);
+    draw_rect_outline(x, bar_y, x + width, bar_y + bar_height);
+}
+
 // Get family color
 static void get_family_color(int family_id, float *r, float *g, float *b) {
     int idx = family_id % 10;
@@ -380,10 +410,8 @@ static void draw_apes(float offset_x, float offset_y, float cell_size) {
             glColor3f(1.0f, 0.8f, 0.0f);
             draw_text(x + size * 0.1f, y + size * 0.45f, label, GLUT_BITMAP_HELVETICA_10);
             
-            // Energy
-            sprintf(label, "E:%d", male->energy);
-            glColor3f(0.6f, 0.8f, 0.6f);
-            draw_text(x + size * 0.1f, y + size * 0.2f, label, GLUT_BITMAP_HELVETICA_10);
+            // Energy bar instead of text
+            draw_energy_bar(x, y + size, size, male->energy, 100);
         }
     }
     
@@ -425,6 +453,9 @@ static void draw_apes(float offset_x, float offset_y, float cell_size) {
                 glColor3f(1.0f, 0.8f, 0.0f);
                 draw_text(x + cell_size * 0.35f, y + cell_size * 0.2f, label, GLUT_BITMAP_HELVETICA_10);
             }
+            
+            // Energy bar
+            draw_energy_bar(x + pad, y + cell_size - pad, cell_size - 2*pad, female->energy, 100);
         }
     }
     

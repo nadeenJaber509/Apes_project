@@ -9,6 +9,7 @@
 #include "config.h"
 #include "simulation.h"
 #include "utils.h"
+#include "graphics.h"
 
 /**
  * Calculate Euclidean distance between two male apes based on their positions
@@ -184,6 +185,7 @@ void* male_ape_thread(void *arg)
                         add_to_basket(family_id, stolen);
                         male->energy -= config.male_fight_win_cost;
                         families[opp].male->energy -= config.male_fight_lose_cost;
+                        graphics_add_male_fight();
                         
                         log_event("Male %d WON fight vs Male %d, stole %d bananas! (score: %d vs %d)",
                                   male->id, families[opp].male->id, stolen, my_score, ot_score);

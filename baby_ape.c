@@ -8,6 +8,7 @@
 #include "config.h"
 #include "simulation.h"
 #include "utils.h"
+#include "graphics.h"
 
 /**
  * Calculate Euclidean distance between baby and target basket
@@ -175,6 +176,7 @@ void* baby_ape_thread(void *arg)
                 int stolen = steal_from_basket(best_target, steal_amount);
                 
                 if (stolen > 0) {
+                    graphics_add_baby_steal();
                     log_event("Baby %d stole %d bananas from Family %d basket!",
                               baby->id, stolen, best_target);
                     

@@ -9,6 +9,7 @@
 #include "config.h"
 #include "simulation.h"
 #include "utils.h"
+#include "graphics.h"
 
 /**
  * Calculate Manhattan distance between two positions
@@ -287,6 +288,7 @@ void* female_ape_thread(void *arg)
                             /* Win: keep bananas */
                             female->energy -= config.female_fight_win_cost;
                             nearby->energy -= config.female_fight_lose_cost;
+                            graphics_add_female_fight();
                             log_event("Female %d won fight! (kept %d bananas)", 
                                       female->id, collected);
                         } else {
@@ -332,6 +334,7 @@ void* female_ape_thread(void *arg)
         /* Deliver bananas to basket */
         if (collected > 0 && !families[family_id].withdrawn) {
             add_to_basket(family_id, collected);
+            graphics_add_collected(collected);
             log_event("Female %d delivered %d bananas to basket", 
                       female->id, collected);
         } else if (collected == 0 && female->bananas_collected > 0) {

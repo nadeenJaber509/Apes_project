@@ -21,33 +21,96 @@ static int manhattan_distance(int r1, int c1, int r2, int c2)
 }
 
 /**
- * Find nearest banana cell in the ENTIRE maze (greedy algorithm)
+ * Find nearest banana using BFS (actual walking distance, not Manhattan)
+ * This prevents looping by finding the truly closest reachable banana
  * Returns true if banana found, updates target_r and target_c
- * Searches all accessible cells to find the absolute closest banana
  */
-static bool find_nearest_banana_greedy(int from_r, int from_c, int *target_r, int *target_c)
+static bool find_nearest_banana_bfs(int from_r, int from_c, int *target_r, int *target_c)
 {
-    int best_dist = config.maze_rows + config.maze_cols + 1; /* Maximum possible distance */
+    int rows = config.maze_rows;
+    int cols = config.maze_cols;
+    
+    if (rows <= 0 || cols <= 0)
+        return false;
+    
+    /* Check current cell first */
+    if (get_cell_bananas(from_r, from_c) > 0) {
+        *target_r = from_r;
+        *target_c = from_c;
+        return true;
+    }
+    
+    /* Allocate visited array */
+    bool **visited = malloc(rows * sizeof(bool *));
+    if (!visited) return false;
+    
+    for (int i = 0; i < rows; i++) {
+        visited[i] = calloc(cols, sizeof(bool));
+        if (!visited[i]) {
+            for (int j = 0; j < i; j++) free(visited[j]);
+            free(visited);
+            return false;
+        }
+    }
+    
+    /* BFS queue */
+    int *queue_r = malloc(rows * cols * sizeof(int));
+    int *queue_c = malloc(rows * cols * sizeof(int));
+    if (!queue_r || !queue_c) {
+        for (int i = 0; i < rows; i++) free(visited[i]);
+        free(visited);
+        free(queue_r);
+        free(queue_c);
+        return false;
+    }
+    
+    int front = 0, back = 0;
+    queue_r[back] = from_r;
+    queue_c[back] = from_c;
+    back++;
+    visited[from_r][from_c] = true;
+    
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+    
     bool found = false;
-
-    /* Search the entire maze for the nearest banana */
-    for (int r = 0; r < config.maze_rows; r++) {
-        for (int c = 0; c < config.maze_cols; c++) {
-            if (!is_valid_position(r, c) || !is_cell_accessible(r, c))
-                continue;
-
-            if (get_cell_bananas(r, c) > 0) {
-                int dist = manhattan_distance(from_r, from_c, r, c);
-                if (dist < best_dist) {
-                    best_dist = dist;
-                    *target_r = r;
-                    *target_c = c;
+    
+    /* BFS finds nearest by actual walking distance */
+    while (front < back && !found) {
+        int curr_r = queue_r[front];
+        int curr_c = queue_c[front];
+        front++;
+        
+        for (int i = 0; i < 4; i++) {
+            int new_r = curr_r + dr[i];
+            int new_c = curr_c + dc[i];
+            
+            if (is_valid_position(new_r, new_c) && !visited[new_r][new_c] &&
+                can_move(curr_r, curr_c, new_r, new_c)) {
+                
+                visited[new_r][new_c] = true;
+                
+                /* Found a banana! This is the nearest one by walking distance */
+                if (get_cell_bananas(new_r, new_c) > 0) {
+                    *target_r = new_r;
+                    *target_c = new_c;
                     found = true;
+                    break;
                 }
+                
+                queue_r[back] = new_r;
+                queue_c[back] = new_c;
+                back++;
             }
         }
     }
-
+    
+    /* Cleanup */
+    for (int i = 0; i < rows; i++) free(visited[i]);
+    free(visited);
+    free(queue_r);
+    free(queue_c);
+    
     return found;
 }
 
@@ -329,10 +392,10 @@ void* female_ape_thread(void *arg)
                 break;
             }
 
-            /* GREEDY: Find the nearest banana in the entire maze */
+            /* BFS: Find the nearest banana by actual walking distance */
             int target_r, target_c;
-            if (find_nearest_banana_greedy(female->position_row, female->position_col, 
-                                           &target_r, &target_c)) {
+            if (find_nearest_banana_bfs(female->position_row, female->position_col, 
+                                        &target_r, &target_c)) {
                 
                 /* Move toward the nearest banana */
                 if (move_toward_target(&female->position_row, &female->position_col,

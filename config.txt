@@ -3,7 +3,7 @@
 # ===============================
 maze_rows=15                    # USED: maze.c (maze generation), graphics.c (rendering)
 maze_cols=15                    # USED: maze.c (maze generation), graphics.c (rendering)
-num_families=5                  # USED: family.c (family initialization), graphics.c (sidebar), simulation.c
+num_families=4                  # USED: family.c (family initialization), graphics.c (sidebar), simulation.c
 num_females_per_family=1        # USED: family.c (female thread creation), baby_ape.c
 num_babies_per_family=1         # USED: family.c (baby thread creation), simulation.c, graphics.c
 max_simulation_time=120         # USED: simulation.c (end condition), graphics.c (timer display)
@@ -11,16 +11,16 @@ max_simulation_time=120         # USED: simulation.c (end condition), graphics.c
 # ===============================
 # Maze Generation
 # ===============================
-obstacle_percentage=50          # USED: maze.c (wall placement probability)
-banana_cell_percentage=25       # USED: maze.c (banana cell distribution)
+obstacle_percentage=100          # USED: maze.c (wall placement probability)
+banana_cell_percentage=20   # USED: maze.c (banana cell distribution)
 max_bananas_per_cell=5          # USED: maze.c (initial banana count per cell)
 
 # ===============================
 # Stop Conditions
 # ===============================
-family_max_bananas=40           # USED: simulation.c (winner detection), graphics.c (progress bar)
-max_withdrawn_families=2        # USED: simulation.c (end condition), graphics.c (display)
-max_baby_eaten=10               # USED: baby_ape.c (baby stop), simulation.c (check)
+family_max_bananas=80           # USED: simulation.c (winner detection), graphics.c (progress bar)
+max_withdrawn_families=5      # USED: simulation.c (end condition), graphics.c (display)
+max_baby_eaten=20               # USED: baby_ape.c (baby stop), simulation.c (check)
 
 # ===============================
 # Female Parameters

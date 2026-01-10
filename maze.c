@@ -133,7 +133,31 @@ static void generate_maze_recursive_backtracking(void) {
 
 // Remove some additional walls to make the maze less perfect (more paths)
 static void add_extra_passages(int percentage) {
-    int walls_to_remove = (maze.rows * maze.cols * percentage) / 100;
+    // For very high percentages (low obstacles), remove almost all internal walls
+    if (percentage >= 90) {
+        printf("High openness (%d%%) - removing most internal walls\n", percentage);
+        // Remove all internal walls (keep only border walls)
+        for (int i = 0; i < maze.rows; i++) {
+            for (int j = 0; j < maze.cols; j++) {
+                // Remove right wall if not at right edge
+                if (j < maze.cols - 1) {
+                    maze.cells[i][j].walls &= ~WALL_RIGHT;
+                    maze.cells[i][j+1].walls &= ~WALL_LEFT;
+                }
+                // Remove bottom wall if not at bottom edge
+                if (i < maze.rows - 1) {
+                    maze.cells[i][j].walls &= ~WALL_BOTTOM;
+                    maze.cells[i+1][j].walls &= ~WALL_TOP;
+                }
+            }
+        }
+        return;
+    }
+    
+    // Calculate walls to remove - multiply by 3 to make it more effective
+    int walls_to_remove = (maze.rows * maze.cols * percentage * 3) / 100;
+    
+    printf("Removing up to %d wall segments for openness\n", walls_to_remove);
     
     for (int i = 0; i < walls_to_remove; i++) {
         int row = rand() % maze.rows;
@@ -210,9 +234,12 @@ void init_maze(void)
     generate_maze_recursive_backtracking();
     
     // Add extra passages to make it less perfect (easier to navigate)
-    // Use obstacle_percentage to control how open the maze is
-    // Higher percentage = more walls removed = easier maze
+    // obstacle_percentage controls wall density:
+    // - 0% obstacles = 100% extra passages removed = very open/easy maze
+    // - 100% obstacles = 0% extra passages removed = perfect maze (hardest)
     int extra_passages = 100 - config.obstacle_percentage;
+    printf("Obstacle percentage: %d%%, removing %d%% extra walls\n", 
+           config.obstacle_percentage, extra_passages);
     if (extra_passages > 0) {
         add_extra_passages(extra_passages);
     }
